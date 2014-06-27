@@ -3,6 +3,7 @@
     <!-- Libraries -->
     <Script Name="GeminiAddon/GeminiAddon.lua"/>
     <Script Name="GeminiDB/GeminiDB-1.0.lua"/>
+    <Script Name="GeminiLogging/GeminiLogging.lua"/>
     <!-- Addon Innit -->
     <Script Name="VikingSettings.lua"/>
     <!-- Additional Modules/XML -->
