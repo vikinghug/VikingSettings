@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Addon Author="Vikinghug" APIVersion="8" Name="VikingSettings" Description="A Settings Menu for all Vikinghug Addons">
+    <!-- Libraries -->
+    <Script Name="GeminiAddon/GeminiAddon.lua"/>
+    <Script Name="GeminiDB/GeminiDB-1.0.lua"/>
+    <!-- Addon Innit -->
     <Script Name="VikingSettings.lua"/>
+    <!-- Additional Modules/XML -->
     <Form Name="VikingSettings.xml"/>
 </Addon>
