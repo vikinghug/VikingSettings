@@ -23,29 +23,29 @@ local defaults = {
     VikingTargetFrame = {
       Player = {
         style             = 0,
-        HighHealthColor   = ApolloColor.new("ff2fdc02"):ToTable(),
-        HealthColor       = ApolloColor.new("ffffd161"):ToTable(),
-        LowHealthColor    = ApolloColor.new("ffe05757"):ToTable(),
-        ShieldColor       = ApolloColor.new("ff00ffff"):ToTable(),
-        AbsorbColor       = ApolloColor.new("ffffff00"):ToTable(),
+        HighHealthColor   = "ff2fdc02",
+        HealthColor       = "ffffd161",
+        LowHealthColor    = "ffe05757",
+        ShieldColor       = "ff00ffff",
+        AbsorbColor       = "ffffff00",
         EnableCastbar     = true,
       },
       Target = {
         style             = 0,
-        HighHealthColor   = ApolloColor.new("ff2fdc02"):ToTable(),
-        HealthColor       = ApolloColor.new("ffffd161"):ToTable(),
-        LowHealthColor    = ApolloColor.new("ffe05757"):ToTable(),
-        ShieldColor       = ApolloColor.new("ff00ffff"):ToTable(),
-        AbsorbColor       = ApolloColor.new("ffffff00"):ToTable(),
+        HighHealthColor   = "ff2fdc02",
+        HealthColor       = "ffffd161",
+        LowHealthColor    = "ffe05757",
+        ShieldColor       = "ff00ffff",
+        AbsorbColor       = "ffffff00",
         EnableCastbar     = true,
       },
       Focus = {
         style             = 0,
-        HighHealthColor   = ApolloColor.new("ff2fdc02"):ToTable(),
-        HealthColor       = ApolloColor.new("ffffd161"):ToTable(),
-        LowHealthColor    = ApolloColor.new("ffe05757"):ToTable(),
-        ShieldColor       = ApolloColor.new("ff00ffff"):ToTable(),
-        AbsorbColor       = ApolloColor.new("ffffff00"):ToTable(),
+        HighHealthColor   = "ff2fdc02",
+        HealthColor       = "ffffd161",
+        LowHealthColor    = "ffe05757",
+        ShieldColor       = "ff00ffff",
+        AbsorbColor       = "ffffff00",
         EnableCastbar     = true,
       },
     },
@@ -53,28 +53,28 @@ local defaults = {
     VikingClassResources = {
       Warrior = {
         style             = 0,
-        ResourceColor     = ApolloColor.new("ffffffff"):ToTable(),
+        ResourceColor     = "ffffffff",
       },
       Spellslinger = {
         style             = 0,
-        ResourceColor     = ApolloColor.new("ffffffff"):ToTable(),
+        ResourceColor     = "ffffffff",
       },
       Esper = {
         style             = 0,
-        ResourceColor     = ApolloColor.new("ffffffff"):ToTable(),
+        ResourceColor     = "ffffffff",
         EnableGlow        = true,
       },
       Engineer = {
         style             = 0,
-        ResourceColor     = ApolloColor.new("ffffffff"):ToTable(),
+        ResourceColor     = "ffffffff",
       },
       Stalker = {
         style             = 0,
-        ResourceColor     = ApolloColor.new("ffffffff"):ToTable(),
+        ResourceColor     = "ffffffff",
       },
       Medic = {
         style             = 0,
-        ResourceColor     = ApolloColor.new("ffffffff"):ToTable(),
+        ResourceColor     = "ffffffff",
       },
     }
   }
@@ -88,6 +88,7 @@ local VikingSettings = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon(
                                   false, 
                                   {
                                     "Gemini:Logging-1.2",
+                                    "GeminiColor",
                                     "Gemini:DB-1.0",
                                   }) 
 
@@ -101,6 +102,9 @@ function VikingSettings:OnInitialize()
   })  
   self.log = glog
   glog:info(string.format("Loaded "..NAME.." - "..VERSION))
+  
+  local GeminiColor= Apollo.GetPackage("GeminiColor").tPackage
+  self.gcolor = GeminiColor
 
   -- setup database
   self.db = Apollo.GetPackage("Gemini:DB-1.0").tPackage:New(self, defaults)
@@ -253,15 +257,9 @@ end
 -----------------------------------------------------------------------------------------------
 -- Color Functions
 -----------------------------------------------------------------------------------------------
-function VikingSettings:CColorToString(cColor)
-  return string.format("%02X%02X%02X%02X", math.floor(cColor.a * 255 + 0.5), math.floor(cColor.r * 255 + 0.5), math.floor(cColor.g * 255 + 0.5), math.floor(cColor.b * 255 + 0.5))
-end
-
-local function SetTextColor(table)
-  --glog:info(table)
-  wndHandler = table.wH
-  cColor = table.cColor
-  wndHandler:SetTextColor(VikingSettings:CColorToString(cColor))
+function VikingSettings:UpdateTextColor(strColor, wndHandler, addon, subSection, varName)
+  self.db.char[addon][subSection][varName] = strColor
+  wndHandler:SetTextColor(strColor)
 end
 
 -----------------------------------------------------------------------------------------------
@@ -294,27 +292,27 @@ end
 
 function VikingSettings:OnTargetFrameHighHealthColorButton( wndHandler, wndControl, eMouseButton )
   local target = wndHandler:GetParent():GetParent():GetParent():GetName()
-  ColorPicker.AdjustCColor(self.db.char.VikingTargetFrame[target].HighHealthColor, true, SetTextColor, {wH = wndHandler, cColor = self.db.char.VikingTargetFrame[target].HighHealthColor})
+  self.gcolor:ShowColorPicker(self, "UpdateTextColor", true, self.db.char.VikingTargetFrame[target].HighHealthColor, wndHandler, "VikingTargetFrame", target, "HighHealthColor")
 end
 
 function VikingSettings:OnTargetFrameHealthColorButton( wndHandler, wndControl, eMouseButton )
   local target = wndHandler:GetParent():GetParent():GetParent():GetName()
-  ColorPicker.AdjustCColor(self.db.char.VikingTargetFrame[target].HealthColor, true, SetTextColor, {wH = wndHandler, cColor = self.db.char.VikingTargetFrame[target].HealthColor})
+  self.gcolor:ShowColorPicker(self, "UpdateTextColor", true, self.db.char.VikingTargetFrame[target].HealthColor, wndHandler, "VikingTargetFrame", target, "HealthColor")
 end
 
 function VikingSettings:OnTargetFrameLowHealthColorButton( wndHandler, wndControl, eMouseButton )
   local target = wndHandler:GetParent():GetParent():GetParent():GetName()
-  ColorPicker.AdjustCColor(self.db.char.VikingTargetFrame[target].LowHealthColor, true, SetTextColor, {wH = wndHandler, cColor = self.db.char.VikingTargetFrame[target].LowHealthColor})
+  self.gcolor:ShowColorPicker(self, "UpdateTextColor", true, self.db.char.VikingTargetFrame[target].LowHealthColor, wndHandler, "VikingTargetFrame", target, "LowHealthColor")
 end
 
 function VikingSettings:OnTargetFrameShieldColorButton( wndHandler, wndControl, eMouseButton )
   local target = wndHandler:GetParent():GetParent():GetParent():GetName()
-  ColorPicker.AdjustCColor(self.db.char.VikingTargetFrame[target].ShieldColor, true, SetTextColor, {wH = wndHandler, cColor = self.db.char.VikingTargetFrame[target].ShieldColor})
+  self.gcolor:ShowColorPicker(self, "UpdateTextColor", true, self.db.char.VikingTargetFrame[target].ShieldColor, wndHandler, "VikingTargetFrame", target, "ShieldColor")
 end
 
 function VikingSettings:OnTargetFrameAbsorbColorButton( wndHandler, wndControl, eMouseButton )
   local target = wndHandler:GetParent():GetParent():GetParent():GetName()
-  ColorPicker.AdjustCColor(self.db.char.VikingTargetFrame[target].AbsorbColor, true, SetTextColor, {wH = wndHandler, cColor = self.db.char.VikingTargetFrame[target].AbsorbColor})
+  self.gcolor:ShowColorPicker(self, "UpdateTextColor", true, self.db.char.VikingTargetFrame[target].AbsorbColor, wndHandler)
 end
 
 function VikingSettings:OnTargetFrameCastBarButtonUp( wndHandler, wndControl, eMouseButton )
@@ -339,7 +337,7 @@ end
 
 function VikingSettings:OnClassResourceResourceBarColorButton( wndHandler, wndControl, eMouseButton )
   local class = wndHandler:GetParent():GetParent():GetParent():GetName()
-  ColorPicker.AdjustCColor(self.db.char.VikingClassResources[class].ResourceColor, true, SetTextColor, {wH = wndHandler, cColor = self.db.char.VikingClassResources[class].ResourceColor})
+  self.gcolor:ShowColorPicker(self, "UpdateTextColor", true, self.db.char.VikingClassResources[class].ResourceColor, wndHandler, "VikingClassResources", class, "ResourceColor")
 end
 
 function VikingSettings:OnClassResourceGlowEffectButtonUp( wndHandler, wndControl, eMouseButton )
