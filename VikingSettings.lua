@@ -2,42 +2,55 @@
 -- Client Lua Script for VikingSettings
 -- Copyright (c) NCsoft. All rights reserved
 -----------------------------------------------------------------------------------------------
- 
+
 require "Window"
- 
+
 -----------------------------------------------------------------------------------------------
 -- VikingSettings Module Definition
 -----------------------------------------------------------------------------------------------
- 
+
 -----------------------------------------------------------------------------------------------
 -- Constants
 -----------------------------------------------------------------------------------------------
 local NAME = "VikingSettings"
 local VERSION = "0.0.1"
 
+local tColors = {
+  black       = "201e2d",
+  white       = "ffffff",
+  lightGrey   = "bcb7da",
+  green       = "1fd865",
+  yellow      = "ffd161",
+  orange      = "e08457",
+  lightPurple = "645f7e",
+  purple      = "28253a",
+  red         = "e05757",
+  blue        = "4ae8ee"
+}
+
 local defaults = {
   char = {
     ['*']                 = false,
     testbool              = true,
-    
+
     VikingTargetFrame = {
       Player = {
         style             = 0,
-        HighHealthColor   = "ff2fdc02",
-        HealthColor       = "ffffd161",
-        LowHealthColor    = "ffe05757",
-        ShieldColor       = "ff00ffff",
-        AbsorbColor       = "ffffff00",
-        EnableCastbar     = true,
+        HighHealthColor   = "ff" .. tColors.green,
+        HealthColor       = "ff" .. tColors.yellow,
+        LowHealthColor    = "ff" .. tColors.red,
+        ShieldColor       = "ff" .. tColors.blue,
+        AbsorbColor       = "ff" .. tColors.yellow,
+        EnableCastbar     = true
       },
       Target = {
         style             = 0,
-        HighHealthColor   = "ff2fdc02",
-        HealthColor       = "ffffd161",
-        LowHealthColor    = "ffe05757",
-        ShieldColor       = "ff00ffff",
-        AbsorbColor       = "ffffff00",
-        EnableCastbar     = true,
+        HighHealthColor   = "ff" .. tColors.green,
+        HealthColor       = "ff" .. tColors.yellow,
+        LowHealthColor    = "ff" .. tColors.red,
+        ShieldColor       = "ff" .. tColors.blue,
+        AbsorbColor       = "ff" .. tColors.yellow,
+        EnableCastbar     = true
       },
       Focus = {
         style             = 0,
@@ -46,10 +59,10 @@ local defaults = {
         LowHealthColor    = "ffe05757",
         ShieldColor       = "ff00ffff",
         AbsorbColor       = "ffffff00",
-        EnableCastbar     = true,
+        EnableCastbar     = true
       },
     },
-    
+
     VikingClassResources = {
       Warrior = {
         style             = 0,
@@ -79,18 +92,18 @@ local defaults = {
     }
   }
 }
- 
+
 -----------------------------------------------------------------------------------------------
 -- Initialization
------------------------------------------------------------------------------------------------ 
+-----------------------------------------------------------------------------------------------
 local VikingSettings = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon(
-                                  NAME, 
-                                  false, 
+                                  NAME,
+                                  false,
                                   {
                                     "Gemini:Logging-1.2",
                                     "GeminiColor",
-                                    "Gemini:DB-1.0",
-                                  }) 
+                                    "Gemini:DB-1.0"
+                                  })
 
 function VikingSettings:OnInitialize()
   -- setup logger
@@ -99,10 +112,10 @@ function VikingSettings:OnInitialize()
     level = GeminiLogging.INFO,
     pattern = "%d [%c:%n] %l - %m",
     appender = "GeminiConsole"
-  })  
+  })
   self.log = glog
   glog:info(string.format("Loaded "..NAME.." - "..VERSION))
-  
+
   local GeminiColor= Apollo.GetPackage("GeminiColor").tPackage
   self.gcolor = GeminiColor
 
@@ -125,12 +138,12 @@ function VikingSettings:OnDocLoaded()
       Apollo.AddAddonErrorText(self, "Could not load the main window for some reason.")
       return
     end
-    
+
       self.wndMain:Show(false, true)
 
     -- if the xmlDoc is no longer needed, you should set it to nil
     -- self.xmlDoc = nil
-    
+
     -- Register handlers for events, slash commands and timer, etc.
 
     Apollo.RegisterSlashCommand("vui", "OnVikingUISlashCommand", self)
@@ -192,7 +205,7 @@ function VikingSettings:CreateAddonForm(addonName)
     newAddonContainer:FindChild("Content:Player:Colors:LifeBar:ShieldButton"):SetTextColor(self.db.char.VikingTargetFrame.Player.ShieldColor)
     newAddonContainer:FindChild("Content:Player:Colors:LifeBar:AbsorbButton"):SetTextColor(self.db.char.VikingTargetFrame.Player.AbsorbColor)
     newAddonContainer:FindChild("Content:Player:OtherSettings:Content:CastBarButton"):SetCheck(self.db.char.VikingTargetFrame.Player.EnableCastbar)
-    
+
     newAddonContainer:FindChild("Content:Target:Style:Content:Button0"):Enable(false)
     newAddonContainer:FindChild("Content:Target:Style:Content:Button1"):Enable(false)
     newAddonContainer:FindChild("Content:Target:Style:Content:Button2"):Enable(false)
@@ -202,7 +215,7 @@ function VikingSettings:CreateAddonForm(addonName)
     newAddonContainer:FindChild("Content:Target:Colors:LifeBar:ShieldButton"):SetTextColor(self.db.char.VikingTargetFrame.Target.ShieldColor)
     newAddonContainer:FindChild("Content:Target:Colors:LifeBar:AbsorbButton"):SetTextColor(self.db.char.VikingTargetFrame.Target.AbsorbColor)
     newAddonContainer:FindChild("Content:Target:OtherSettings:Content:CastBarButton"):SetCheck(self.db.char.VikingTargetFrame.Target.EnableCastbar)
-    
+
     newAddonContainer:FindChild("Content:Focus:Style:Content:Button0"):Enable(false)
     newAddonContainer:FindChild("Content:Focus:Style:Content:Button1"):Enable(false)
     newAddonContainer:FindChild("Content:Focus:Style:Content:Button2"):Enable(false)
@@ -268,12 +281,12 @@ end
 function VikingSettings:OnSettingsMenuButtonCheck( wndHandler, wndControl, eMouseButton )
   for id, currentAddon in ipairs(self.Addons) do
     self.AddonContainers[id]:Show(self.AddonButtons[id]:IsChecked())
-    if self.AddonButtons[id]:IsChecked() then 
+    if self.AddonButtons[id]:IsChecked() then
       self.currentID = id
     end
   end
   glog:info("Current ID: "..self.currentID)
-  
+
   self.wndSettings:FindChild("Content"):SetVScrollPos(0)
   self.wndSettings:FindChild("Content"):RecalculateContentExtents()
 end
@@ -285,7 +298,7 @@ function VikingSettings:OnTargetFrameMenuButtonCheck( wndHandler, wndControl, eM
   self.AddonContainers[self.currentID]:FindChild("Content:Player"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:PlayerButton"):IsChecked())
   self.AddonContainers[self.currentID]:FindChild("Content:Target"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:TargetButton"):IsChecked())
   self.AddonContainers[self.currentID]:FindChild("Content:Focus"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:FocusButton"):IsChecked())
-  
+
   self.wndSettings:FindChild("Content"):SetVScrollPos(0)
   self.AddonContainers[self.currentID]:FindChild("Content"):RecalculateContentExtents()
 end
@@ -330,7 +343,7 @@ function VikingSettings:OnClassResourceMenuButtonCheck( wndHandler, wndControl, 
   self.AddonContainers[self.currentID]:FindChild("Content:Engineer"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:EngineerButton"):IsChecked())
   self.AddonContainers[self.currentID]:FindChild("Content:Stalker"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:StalkerButton"):IsChecked())
   self.AddonContainers[self.currentID]:FindChild("Content:Medic"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:MedicButton"):IsChecked())
-  
+
   self.wndSettings:FindChild("Content"):SetVScrollPos(0)
   self.AddonContainers[self.currentID]:FindChild("Content"):RecalculateContentExtents()
 end
