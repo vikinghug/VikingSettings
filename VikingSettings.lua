@@ -4,6 +4,7 @@
 -----------------------------------------------------------------------------------------------
 
 require "Window"
+require "Apollo"
 
 -----------------------------------------------------------------------------------------------
 -- VikingSettings Module Definition
@@ -16,14 +17,14 @@ local NAME = "VikingSettings"
 local VERSION = "0.0.1"
 
 local tColors = {
-  black       = "201e2d",
+  black       = "141122",
   white       = "ffffff",
   lightGrey   = "bcb7da",
   green       = "1fd865",
   yellow      = "ffd161",
   orange      = "e08457",
   lightPurple = "645f7e",
-  purple      = "28253a",
+  purple      = "2b273d",
   red         = "e05757",
   blue        = "4ae8ee"
 }
@@ -33,33 +34,34 @@ local defaults = {
     ['*']                 = false,
     testbool              = true,
 
-    VikingTargetFrame = {
-      Player = {
-        style             = 0,
-        HighHealthColor   = "ff" .. tColors.green,
-        HealthColor       = "ff" .. tColors.yellow,
-        LowHealthColor    = "ff" .. tColors.red,
-        ShieldColor       = "ff" .. tColors.blue,
-        AbsorbColor       = "ff" .. tColors.yellow,
-        EnableCastbar     = true
+    General = {
+      colors = {
+        background = "992b273d",
+        gradient   = "ff141122"
       },
-      Target = {
-        style             = 0,
-        HighHealthColor   = "ff" .. tColors.green,
-        HealthColor       = "ff" .. tColors.yellow,
-        LowHealthColor    = "ff" .. tColors.red,
-        ShieldColor       = "ff" .. tColors.blue,
-        AbsorbColor       = "ff" .. tColors.yellow,
-        EnableCastbar     = true
+      dispositionColors = {
+        [Unit.CodeEnumDisposition.Neutral]  = "ff" .. tColors.yellow,
+        [Unit.CodeEnumDisposition.Hostile]  = "ff" .. tColors.red,
+        [Unit.CodeEnumDisposition.Friendly] = "ff" .. tColors.green,
+      }
+    },
+
+    VikingUnitFrames = {
+      style               = 0,
+      position = {
+        playerFrame = {
+          fPoints  = {0.5, 1, 0.5, 1},
+          nOffsets = {-350, -200, -100, -120}
+        },
+        targetFrame = {
+          fPoints  = {0.5, 1, 0.5, 1},
+          nOffsets = {100, -200, 350, -120}
+        },
       },
-      Focus = {
-        style             = 0,
-        HighHealthColor   = "ff2fdc02",
-        HealthColor       = "ffffd161",
-        LowHealthColor    = "ffe05757",
-        ShieldColor       = "ff00ffff",
-        AbsorbColor       = "ffffff00",
-        EnableCastbar     = true
+      colors = {
+        Health = { high = "ff" .. tColors.green,  average = "ff" .. tColors.yellow, low = "ff" .. tColors.red },
+        Shield = { high = "ff" .. tColors.blue,   average = "ff" .. tColors.blue, low = "ff" ..   tColors.blue },
+        Absorb = { high = "ff" .. tColors.yellow, average = "ff" .. tColors.yellow, low = "ff" .. tColors.yellow },
       },
     },
 
@@ -163,25 +165,26 @@ function VikingSettings:ShowHideSettings()
     self.Addons = {}
     self.AddonContainers = {}
     self.AddonButtons = {}
-    self.currentID = 0
+  --   self.currentID = 0
 
-    if Apollo.GetAddon("VikingTargetFrame") then
-      self:CreateAddonForm("VikingTargetFrame")
-    end
-    if Apollo.GetAddon("VikingClassResources") then
-      self:CreateAddonForm("VikingClassResources")
-    end
+  --   if Apollo.GetAddon("VikingTargetFrame") then
+  --     self:CreateAddonForm("VikingTargetFrame")
+  --   end
+  --   if Apollo.GetAddon("VikingClassResources") then
+  --     self:CreateAddonForm("VikingClassResources")
+  --   end
 
-    for id, currentAddonButton in ipairs(self.AddonButtons) do
-      currentAddonButton:SetAnchorOffsets(0, ((id-1)*40), 192, (id*40))
-    end
+  --   for id, currentAddonButton in ipairs(self.AddonButtons) do
+  --     currentAddonButton:SetAnchorOffsets(0, ((id-1)*40), 192, (id*40))
+  --   end
+  -- end
+  -- if self.bSettingsOpen then
+  --   -- Open Window
+  --   self.AddonButtons[1]:SetCheck(true)
+  --   self:OnSettingsMenuButtonCheck()
+  -- end
+  -- self.wndSettings:Show(self.bSettingsOpen, false)
   end
-  if self.bSettingsOpen then
-    -- Open Window
-    self.AddonButtons[1]:SetCheck(true)
-    self:OnSettingsMenuButtonCheck()
-  end
-  self.wndSettings:Show(self.bSettingsOpen, false)
 end
 
 function VikingSettings:CreateAddonForm(addonName)
@@ -192,79 +195,14 @@ function VikingSettings:CreateAddonForm(addonName)
   local newAddonButton = Apollo.LoadForm(self.xmlDoc, "AddonButton", self.wndSettings:FindChild("Menu"), self)
   newAddonButton:SetText(addonName)
 
-  if addonName == "VikingTargetFrame" then
-    newAddonContainer:FindChild("Menu:PlayerButton"):SetCheck(true)
-    newAddonContainer:FindChild("Content"):RecalculateContentExtents()
-
-    newAddonContainer:FindChild("Content:Player:Style:Content:Button0"):Enable(false)
-    newAddonContainer:FindChild("Content:Player:Style:Content:Button1"):Enable(false)
-    newAddonContainer:FindChild("Content:Player:Style:Content:Button2"):Enable(false)
-    newAddonContainer:FindChild("Content:Player:Colors:LifeBar:HighHealthButton"):SetTextColor(self.db.char.VikingTargetFrame.Player.HighHealthColor)
-    newAddonContainer:FindChild("Content:Player:Colors:LifeBar:HealthButton"):SetTextColor(self.db.char.VikingTargetFrame.Player.HealthColor)
-    newAddonContainer:FindChild("Content:Player:Colors:LifeBar:LowHealthButton"):SetTextColor(self.db.char.VikingTargetFrame.Player.LowHealthColor)
-    newAddonContainer:FindChild("Content:Player:Colors:LifeBar:ShieldButton"):SetTextColor(self.db.char.VikingTargetFrame.Player.ShieldColor)
-    newAddonContainer:FindChild("Content:Player:Colors:LifeBar:AbsorbButton"):SetTextColor(self.db.char.VikingTargetFrame.Player.AbsorbColor)
-    newAddonContainer:FindChild("Content:Player:OtherSettings:Content:CastBarButton"):SetCheck(self.db.char.VikingTargetFrame.Player.EnableCastbar)
-
-    newAddonContainer:FindChild("Content:Target:Style:Content:Button0"):Enable(false)
-    newAddonContainer:FindChild("Content:Target:Style:Content:Button1"):Enable(false)
-    newAddonContainer:FindChild("Content:Target:Style:Content:Button2"):Enable(false)
-    newAddonContainer:FindChild("Content:Target:Colors:LifeBar:HighHealthButton"):SetTextColor(self.db.char.VikingTargetFrame.Target.HighHealthColor)
-    newAddonContainer:FindChild("Content:Target:Colors:LifeBar:HealthButton"):SetTextColor(self.db.char.VikingTargetFrame.Target.HealthColor)
-    newAddonContainer:FindChild("Content:Target:Colors:LifeBar:LowHealthButton"):SetTextColor(self.db.char.VikingTargetFrame.Target.LowHealthColor)
-    newAddonContainer:FindChild("Content:Target:Colors:LifeBar:ShieldButton"):SetTextColor(self.db.char.VikingTargetFrame.Target.ShieldColor)
-    newAddonContainer:FindChild("Content:Target:Colors:LifeBar:AbsorbButton"):SetTextColor(self.db.char.VikingTargetFrame.Target.AbsorbColor)
-    newAddonContainer:FindChild("Content:Target:OtherSettings:Content:CastBarButton"):SetCheck(self.db.char.VikingTargetFrame.Target.EnableCastbar)
-
-    newAddonContainer:FindChild("Content:Focus:Style:Content:Button0"):Enable(false)
-    newAddonContainer:FindChild("Content:Focus:Style:Content:Button1"):Enable(false)
-    newAddonContainer:FindChild("Content:Focus:Style:Content:Button2"):Enable(false)
-    newAddonContainer:FindChild("Content:Focus:Colors:LifeBar:HighHealthButton"):SetTextColor(self.db.char.VikingTargetFrame.Focus.HighHealthColor)
-    newAddonContainer:FindChild("Content:Focus:Colors:LifeBar:HealthButton"):SetTextColor(self.db.char.VikingTargetFrame.Focus.HealthColor)
-    newAddonContainer:FindChild("Content:Focus:Colors:LifeBar:LowHealthButton"):SetTextColor(self.db.char.VikingTargetFrame.Focus.LowHealthColor)
-    newAddonContainer:FindChild("Content:Focus:Colors:LifeBar:ShieldButton"):SetTextColor(self.db.char.VikingTargetFrame.Focus.ShieldColor)
-    newAddonContainer:FindChild("Content:Focus:Colors:LifeBar:AbsorbButton"):SetTextColor(self.db.char.VikingTargetFrame.Focus.AbsorbColor)
-    newAddonContainer:FindChild("Content:Focus:OtherSettings:Content:CastBarButton"):SetCheck(self.db.char.VikingTargetFrame.Focus.EnableCastbar)
-  end
-  if addonName == "VikingClassResources" then
-    newAddonContainer:FindChild("Menu:WarriorButton"):SetCheck(true)
-    newAddonContainer:FindChild("Content"):RecalculateContentExtents()
-
-    newAddonContainer:FindChild("Content:Warrior:Style:Content:Button0"):Enable(false)
-    newAddonContainer:FindChild("Content:Warrior:Style:Content:Button1"):Enable(false)
-    newAddonContainer:FindChild("Content:Warrior:Style:Content:Button2"):Enable(false)
-    newAddonContainer:FindChild("Content:Warrior:Colors:Content:ResourceBarButton"):SetTextColor(self.db.char.VikingClassResources.Warrior.ResourceColor)
-
-    newAddonContainer:FindChild("Content:Spellslinger:Style:Content:Button0"):Enable(false)
-    newAddonContainer:FindChild("Content:Spellslinger:Style:Content:Button1"):Enable(false)
-    newAddonContainer:FindChild("Content:Spellslinger:Style:Content:Button2"):Enable(false)
-    newAddonContainer:FindChild("Content:Spellslinger:Colors:Content:ResourceBarButton"):SetTextColor(self.db.char.VikingClassResources.Spellslinger.ResourceColor)
-
-    newAddonContainer:FindChild("Content:Esper:Style:Content:Button0"):Enable(false)
-    newAddonContainer:FindChild("Content:Esper:Style:Content:Button1"):Enable(false)
-    newAddonContainer:FindChild("Content:Esper:Style:Content:Button2"):Enable(false)
-    newAddonContainer:FindChild("Content:Esper:Colors:Content:ResourceBarButton"):SetTextColor(self.db.char.VikingClassResources.Esper.ResourceColor)
-    newAddonContainer:FindChild("Content:Esper:Effects:Content:GlowButton"):SetCheck(self.db.char.VikingClassResources.Esper.EnableGlow)
-
-    newAddonContainer:FindChild("Content:Engineer:Style:Content:Button0"):Enable(false)
-    newAddonContainer:FindChild("Content:Engineer:Style:Content:Button1"):Enable(false)
-    newAddonContainer:FindChild("Content:Engineer:Style:Content:Button2"):Enable(false)
-    newAddonContainer:FindChild("Content:Engineer:Colors:Content:ResourceBarButton"):SetTextColor(self.db.char.VikingClassResources.Engineer.ResourceColor)
-
-    newAddonContainer:FindChild("Content:Stalker:Style:Content:Button0"):Enable(false)
-    newAddonContainer:FindChild("Content:Stalker:Style:Content:Button1"):Enable(false)
-    newAddonContainer:FindChild("Content:Stalker:Style:Content:Button2"):Enable(false)
-    newAddonContainer:FindChild("Content:Stalker:Colors:Content:ResourceBarButton"):SetTextColor(self.db.char.VikingClassResources.Stalker.ResourceColor)
-
-    newAddonContainer:FindChild("Content:Medic:Style:Content:Button0"):Enable(false)
-    newAddonContainer:FindChild("Content:Medic:Style:Content:Button1"):Enable(false)
-    newAddonContainer:FindChild("Content:Medic:Style:Content:Button2"):Enable(false)
-    newAddonContainer:FindChild("Content:Medic:Colors:Content:ResourceBarButton"):SetTextColor(self.db.char.VikingClassResources.Medic.ResourceColor)
-  end
-
   table.insert(self.Addons, addonName)
   table.insert(self.AddonContainers, newAddonContainer)
   table.insert(self.AddonButtons, newAddonButton)
+end
+
+function VikingSettings.RegisterSettings(parent, xmlDoc)
+  VikingSettings:CreateAddonForm("VikingUnitFrames")
+  return Apollo.LoadForm(xmlDoc, "Settings", nil, parent)
 end
 
 -----------------------------------------------------------------------------------------------
@@ -308,44 +246,20 @@ function VikingSettings:OnTargetFrameHighHealthColorButton( wndHandler, wndContr
   self.gcolor:ShowColorPicker(self, "UpdateTextColor", true, self.db.char.VikingTargetFrame[target].HighHealthColor, wndHandler, "VikingTargetFrame", target, "HighHealthColor")
 end
 
-function VikingSettings:OnTargetFrameHealthColorButton( wndHandler, wndControl, eMouseButton )
-  local target = wndHandler:GetParent():GetParent():GetParent():GetName()
-  self.gcolor:ShowColorPicker(self, "UpdateTextColor", true, self.db.char.VikingTargetFrame[target].HealthColor, wndHandler, "VikingTargetFrame", target, "HealthColor")
-end
-
-function VikingSettings:OnTargetFrameLowHealthColorButton( wndHandler, wndControl, eMouseButton )
-  local target = wndHandler:GetParent():GetParent():GetParent():GetName()
-  self.gcolor:ShowColorPicker(self, "UpdateTextColor", true, self.db.char.VikingTargetFrame[target].LowHealthColor, wndHandler, "VikingTargetFrame", target, "LowHealthColor")
-end
-
-function VikingSettings:OnTargetFrameShieldColorButton( wndHandler, wndControl, eMouseButton )
-  local target = wndHandler:GetParent():GetParent():GetParent():GetName()
-  self.gcolor:ShowColorPicker(self, "UpdateTextColor", true, self.db.char.VikingTargetFrame[target].ShieldColor, wndHandler, "VikingTargetFrame", target, "ShieldColor")
-end
-
-function VikingSettings:OnTargetFrameAbsorbColorButton( wndHandler, wndControl, eMouseButton )
-  local target = wndHandler:GetParent():GetParent():GetParent():GetName()
-  self.gcolor:ShowColorPicker(self, "UpdateTextColor", true, self.db.char.VikingTargetFrame[target].AbsorbColor, wndHandler)
-end
-
-function VikingSettings:OnTargetFrameCastBarButtonUp( wndHandler, wndControl, eMouseButton )
-  local target = wndHandler:GetParent():GetParent():GetParent():GetName()
-  self.db.char.VikingTargetFrame[target].EnableCastbar = wndHandler:IsChecked()
-end
 
 -----------------------------------------------------------------------------------------------
 -- ClassResource Functions
 -----------------------------------------------------------------------------------------------
 function VikingSettings:OnClassResourceMenuButtonCheck( wndHandler, wndControl, eMouseButton )
-  self.AddonContainers[self.currentID]:FindChild("Content:Warrior"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:WarriorButton"):IsChecked())
-  self.AddonContainers[self.currentID]:FindChild("Content:Spellslinger"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:SpellslingerButton"):IsChecked())
-  self.AddonContainers[self.currentID]:FindChild("Content:Esper"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:EsperButton"):IsChecked())
-  self.AddonContainers[self.currentID]:FindChild("Content:Engineer"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:EngineerButton"):IsChecked())
-  self.AddonContainers[self.currentID]:FindChild("Content:Stalker"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:StalkerButton"):IsChecked())
-  self.AddonContainers[self.currentID]:FindChild("Content:Medic"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:MedicButton"):IsChecked())
+  -- self.AddonContainers[self.currentID]:FindChild("Content:Warrior"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:WarriorButton"):IsChecked())
+  -- self.AddonContainers[self.currentID]:FindChild("Content:Spellslinger"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:SpellslingerButton"):IsChecked())
+  -- self.AddonContainers[self.currentID]:FindChild("Content:Esper"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:EsperButton"):IsChecked())
+  -- self.AddonContainers[self.currentID]:FindChild("Content:Engineer"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:EngineerButton"):IsChecked())
+  -- self.AddonContainers[self.currentID]:FindChild("Content:Stalker"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:StalkerButton"):IsChecked())
+  -- self.AddonContainers[self.currentID]:FindChild("Content:Medic"):Show(self.AddonContainers[self.currentID]:FindChild("Menu:MedicButton"):IsChecked())
 
-  self.wndSettings:FindChild("Content"):SetVScrollPos(0)
-  self.AddonContainers[self.currentID]:FindChild("Content"):RecalculateContentExtents()
+  -- self.wndSettings:FindChild("Content"):SetVScrollPos(0)
+  -- self.AddonContainers[self.currentID]:FindChild("Content"):RecalculateContentExtents()
 end
 
 function VikingSettings:OnClassResourceResourceBarColorButton( wndHandler, wndControl, eMouseButton )
