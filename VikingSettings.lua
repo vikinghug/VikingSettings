@@ -57,6 +57,15 @@ local defaults = {
           fPoints  = {0.5, 1, 0.5, 1},
           nOffsets = {100, -200, 350, -120}
         },
+        focusFrame = {
+          fPoints  = {0, 1, 0, 1},
+          nOffsets = {40, -500, 250, -440}
+        }
+      },
+      text = {
+        percent = true,
+        value   = false,
+        none    = false
       },
       colors = {
         Health = { high = "ff" .. tColors.green,  average = "ff" .. tColors.yellow, low = "ff" .. tColors.red },
@@ -149,6 +158,9 @@ function VikingSettings:OnDocLoaded()
     -- Register handlers for events, slash commands and timer, etc.
 
     Apollo.RegisterSlashCommand("vui", "OnVikingUISlashCommand", self)
+    self.Addons = {}
+    self.AddonContainers = {}
+    self.AddonButtons = {}
 
     self.bSettingsOpen = false
 
@@ -162,47 +174,53 @@ function VikingSettings:ShowHideSettings()
   if not self.wndSettings then
     -- Create Window
     self.wndSettings = Apollo.LoadForm(self.xmlDoc, "VikingSettingsForm", nil, self)
-    self.Addons = {}
-    self.AddonContainers = {}
-    self.AddonButtons = {}
-  --   self.currentID = 0
+    self.currentID = 0
 
+    for id, addon in ipairs(self.Addons) do
+      self.CreateAddonForm(addon.parent, addon.addonName)
+    end
   --   if Apollo.GetAddon("VikingTargetFrame") then
-  --     self:CreateAddonForm("VikingTargetFrame")
+  --     self.CreateAddonForm("VikingTargetFrame")
   --   end
   --   if Apollo.GetAddon("VikingClassResources") then
-  --     self:CreateAddonForm("VikingClassResources")
+  --     self.CreateAddonForm("VikingClassResources")
   --   end
 
-  --   for id, currentAddonButton in ipairs(self.AddonButtons) do
-  --     currentAddonButton:SetAnchorOffsets(0, ((id-1)*40), 192, (id*40))
-  --   end
-  -- end
-  -- if self.bSettingsOpen then
-  --   -- Open Window
-  --   self.AddonButtons[1]:SetCheck(true)
-  --   self:OnSettingsMenuButtonCheck()
-  -- end
-  -- self.wndSettings:Show(self.bSettingsOpen, false)
+    for id, currentAddonButton in ipairs(self.AddonButtons) do
+      currentAddonButton:SetAnchorOffsets(0, ((id-1)*40), 192, (id*40))
+    end
   end
+  if self.bSettingsOpen then
+    -- Open Window
+    SendVarToRover("self.AddonButtons[1]", self.AddonButtons[1])
+    self.AddonButtons[1]:Show(true)
+    self.AddonButtons[1]:SetCheck(true)
+    self:OnSettingsMenuButtonCheck()
+  end
+  self.wndSettings:Show(self.bSettingsOpen, false)
+
 end
 
-function VikingSettings:CreateAddonForm(addonName)
+function VikingSettings.CreateAddonForm(parent, addonName)
   glog:info("Create Addon Form: '"..addonName.."'")
 
-  local newAddonContainer = Apollo.LoadForm(self.xmlDoc, addonName, self.wndSettings:FindChild("Content"), self)
+  SendVarToRover("VikingSettings", parent.xmlDoc)
 
-  local newAddonButton = Apollo.LoadForm(self.xmlDoc, "AddonButton", self.wndSettings:FindChild("Menu"), self)
+  local newAddonContainer = Apollo.LoadForm(parent.xmlDoc         , "VikingSettings" , VikingSettings.wndMain:FindChild("Content") , VikingSettings)
+  local newAddonButton    = Apollo.LoadForm(VikingSettings.xmlDoc , "AddonButton"    , VikingSettings.wndMain:FindChild("Menu")    , VikingSettings)
   newAddonButton:SetText(addonName)
 
-  table.insert(self.Addons, addonName)
-  table.insert(self.AddonContainers, newAddonContainer)
-  table.insert(self.AddonButtons, newAddonButton)
+  table.insert(VikingSettings.AddonContainers, newAddonContainer)
+  table.insert(VikingSettings.AddonButtons, newAddonButton)
 end
 
-function VikingSettings.RegisterSettings(parent, xmlDoc)
-  VikingSettings:CreateAddonForm("VikingUnitFrames")
-  return Apollo.LoadForm(xmlDoc, "Settings", nil, parent)
+function VikingSettings.RegisterSettings(parent, addonName)
+  local addon = {
+    parent    = parent,
+    addonName = addonName
+  }
+  table.insert(VikingSettings.Addons, addon)
+  return
 end
 
 -----------------------------------------------------------------------------------------------
@@ -218,10 +236,10 @@ end
 -----------------------------------------------------------------------------------------------
 function VikingSettings:OnSettingsMenuButtonCheck( wndHandler, wndControl, eMouseButton )
   for id, currentAddon in ipairs(self.Addons) do
-    self.AddonContainers[id]:Show(self.AddonButtons[id]:IsChecked())
-    if self.AddonButtons[id]:IsChecked() then
-      self.currentID = id
-    end
+    -- self.AddonContainers[id]:Show(self.AddonButtons[id]:IsChecked())
+    -- if self.AddonButtons[id]:IsChecked() then
+    --   self.currentID = id
+    -- end
   end
   glog:info("Current ID: "..self.currentID)
 
@@ -288,9 +306,9 @@ function VikingSettings:OnVikingUISlashCommand(strCmd, strParam)
       glog:info("testbool = false")
     else
       if self.db.char.testbool then
-      	glog:info("testbool == true")
+        glog:info("testbool == true")
       else
-      	glog:info("testbool == false")
+        glog:info("testbool == false")
       end
     end
   else
