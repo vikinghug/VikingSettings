@@ -7,10 +7,6 @@ require "Window"
 require "Apollo"
 
 -----------------------------------------------------------------------------------------------
--- VikingSettings Module Definition
------------------------------------------------------------------------------------------------
-
------------------------------------------------------------------------------------------------
 -- Constants
 -----------------------------------------------------------------------------------------------
 local NAME = "VikingSettings"
@@ -32,7 +28,6 @@ local tColors = {
 local defaults = {
   char = {
     ['*']                 = false,
-    testbool              = true,
 
     General = {
       colors = {
@@ -44,62 +39,6 @@ local defaults = {
         [Unit.CodeEnumDisposition.Hostile]  = "ff" .. tColors.red,
         [Unit.CodeEnumDisposition.Friendly] = "ff" .. tColors.green,
       }
-    },
-
-    VikingUnitFrames = {
-      style               = 0,
-      position = {
-        playerFrame = {
-          fPoints  = {0.5, 1, 0.5, 1},
-          nOffsets = {-350, -200, -100, -120}
-        },
-        targetFrame = {
-          fPoints  = {0.5, 1, 0.5, 1},
-          nOffsets = {100, -200, 350, -120}
-        },
-        focusFrame = {
-          fPoints  = {0, 1, 0, 1},
-          nOffsets = {40, -500, 250, -440}
-        }
-      },
-      text = {
-        percent = true,
-        value   = false,
-        none    = false
-      },
-      colors = {
-        Health = { high = "ff" .. tColors.green,  average = "ff" .. tColors.yellow, low = "ff" .. tColors.red },
-        Shield = { high = "ff" .. tColors.blue,   average = "ff" .. tColors.blue, low = "ff" ..   tColors.blue },
-        Absorb = { high = "ff" .. tColors.yellow, average = "ff" .. tColors.yellow, low = "ff" .. tColors.yellow },
-      },
-    },
-
-    VikingClassResources = {
-      Warrior = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-      },
-      Spellslinger = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-      },
-      Esper = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-        EnableGlow        = true,
-      },
-      Engineer = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-      },
-      Stalker = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-      },
-      Medic = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-      },
     }
   }
 }
@@ -139,14 +78,28 @@ function VikingSettings:OnDocLoaded()
   if self.xmlDoc ~= nil and self.xmlDoc:IsLoaded() then
     Apollo.RegisterSlashCommand("vui", "OnVikingUISlashCommand", self)
 
+    -- tAddonData contains:
+    -- tAddon
+    -- strAddonName
+    -- wndContainer
+    -- wndButton
+
     self.tAddons = {}
 
     VikingSettings.RegisterSettings(self, "VikingSettings")
   end
 end
 
-function VikingSettings.RegisterSettings(tAddon, strAddonName)
-  if tAddon then
+function VikingSettings.GetDatabase(strAddonName)
+  local db = VikingSettings.db.char[strAddonName]
+  if db then
+    db.General = VikingSettings.db.char.General
+  end
+  return db
+end
+
+function VikingSettings.RegisterSettings(tAddon, strAddonName, tDefaults)
+  if tAddon and strAddonName then
     local tAddonData = 
     {
       tAddon = tAddon,
@@ -155,6 +108,10 @@ function VikingSettings.RegisterSettings(tAddon, strAddonName)
 
     if not VikingSettings:IsAddonRegistered(strAddonName) then
       table.insert(VikingSettings.tAddons, tAddonData)
+
+      if tDefaults then
+        VikingSettings:RegisterDefaults(strAddonName, tDefaults)
+      end
     else
       glog:warn("Tried to register addon '" ..strAddonName.. "' but it was already registered.")
     end
@@ -171,12 +128,63 @@ function VikingSettings:IsAddonRegistered(strAddonName)
   return false
 end
 
+function VikingSettings:RegisterDefaults(strAddonName, tDefaults)
+  if not VikingSettings.db.char[strAddonName] then
+    VikingSettings.db.char[strAddonName] = {}
+  end
+
+  if not VikingSettings.db.defaults.char[strAddonName] then
+    VikingSettings.db.defaults.char[strAddonName] = tDefaults
+  end
+
+  VikingSettings:MergeTables(VikingSettings.db.char[strAddonName], tDefaults)
+end
+
+function VikingSettings:ResetAddon(strAddonName)
+  for k in pairs (VikingSettings.db.char[strAddonName]) do
+    VikingSettings.db.char[strAddonName][k] = nil
+  end
+
+  local tDefaults = VikingSettings.db.defaults.char[strAddonName]
+
+  if tDefaults then
+    VikingSettings:RegisterDefaults(strAddonName, tDefaults)
+  end
+
+  local tAddonData = VikingSettings:GetAddonDataByName(strAddonName)
+  VikingSettings:UpdateForm(tAddonData)
+end
+
 function VikingSettings:ShowSettings(bShow)
-  if not self.wndSettings then
-    self:BuildSettingsWindow()
+  if bShow then
+    if not self.wndSettings then
+      self:BuildSettingsWindow()
+    end
+
+    self:UpdateAllForms()
   end
 
   self.wndSettings:Show(bShow, false)
+end
+
+function VikingSettings:UpdateForm(tAddonData)
+  if tAddonData.wndContainer and tAddonData.tAddon.UpdateSettingsForm then
+    tAddonData.tAddon:UpdateSettingsForm(tAddonData.wndContainer)
+  end
+end
+
+function VikingSettings:UpdateAllForms()
+  for id, tAddonData in pairs(self.tAddons) do
+    VikingSettings:UpdateForm(tAddonData)
+  end
+end
+
+function VikingSettings:GetAddonDataByName(strAddonName)
+  for id, tAddonData in pairs(self.tAddons) do
+    if tAddonData.strAddonName == strAddonName then
+      return tAddonData
+    end
+  end
 end
 
 function VikingSettings:BuildSettingsWindow()
@@ -184,10 +192,10 @@ function VikingSettings:BuildSettingsWindow()
 
   for id, tAddonData in ipairs(self.tAddons) do
     self.CreateAddonForm(tAddonData)
-    tAddonData.tButton:SetAnchorOffsets(0, (id - 1) * 40, 0, id * 40)
+    tAddonData.wndButton:SetAnchorOffsets(0, (id - 1) * 40, 0, id * 40)
   end
 
-  self.tAddons[1].tButton:SetCheck(true)
+  self.tAddons[1].wndButton:SetCheck(true)
   self:OnSettingsMenuButtonCheck()
 end
 
@@ -203,16 +211,58 @@ function VikingSettings.CreateAddonForm(tAddonData)
 
   wndAddonContainer:Show(false)
 
-  tAddonData.tContainer = wndAddonContainer
-  tAddonData.tButton = wndAddonButton
+  tAddonData.wndContainer = wndAddonContainer
+  tAddonData.wndButton = wndAddonButton
+end
+
+-- merges t2 into t1 without overwriting values
+function VikingSettings:MergeTables(t1, t2)
+  for k, v in pairs(t2) do
+      if type(v) == "table" then
+          if not t1[k] or type(t1[k]) ~= "table" then
+            t1[k] = {}
+          end
+
+          VikingSettings:MergeTables(t1[k], t2[k])
+      elseif not t1[k] then
+          t1[k] = v
+      end
+  end
+  return t1
 end
 
 -----------------------------------------------------------------------------------------------
 -- Color Functions
 -----------------------------------------------------------------------------------------------
-function VikingSettings:UpdateTextColor(strColor, wndHandler, addon, subSection, varName)
-  self.db.char[addon][subSection][varName] = strColor
-  wndHandler:SetTextColor(strColor)
+
+--
+-- ShowColorPickerForSetting(tSection, strKeyName[, callback][, wndControl])
+--
+--   Shows a color picker for a specific color setting in the database
+-- 
+-- tSection is a reference to the table containing the color
+-- strKeyName is the key name for the color in that section
+-- callback is a function reference that's called when the color changes
+-- wndControl is a window which bagground will show the color
+--
+-- callback(tSection, strKeyName, strColor, wndControl)
+--
+function VikingSettings.ShowColorPickerForSetting(tSection, strKeyName, callback, wndControl)
+  local strInitialColor = tSection[strKeyName]
+
+  VikingSettings.gcolor:ShowColorPicker(VikingSettings, "OnColorPicker", true, strInitialColor, tSection, strKeyName, callback, wndControl)
+end
+
+function VikingSettings:OnColorPicker(strColor, tSection, strKeyName, callback, wndControl)
+  tSection[strKeyName] = strColor
+
+  if wndControl then
+    wndControl:SetBGColor(strColor)
+  end
+
+  if callback then
+    callback(tSection, strKeyName, strColor, wndControl)
+  end
 end
 
 -----------------------------------------------------------------------------------------------
@@ -221,6 +271,12 @@ end
 function VikingSettings:OnSettingsMenuButtonCheck( wndHandler, wndControl, eMouseButton )
   self.wndSettings:FindChild("Content"):SetVScrollPos(0)
   self.wndSettings:FindChild("Content"):RecalculateContentExtents()
+end
+
+function VikingSettings:OnResetEverythingButton( wndHandler, wndControl, eMouseButton )
+  for idx, tAddonData in pairs(self.tAddons) do
+    self:ResetAddon(tAddonData.strAddonName)
+  end
 end
 
 -----------------------------------------------------------------------------------------------
