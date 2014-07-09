@@ -112,6 +112,10 @@ function VikingSettings.RegisterSettings(tAddon, strAddonName, tDefaults)
       if tDefaults then
         VikingSettings:RegisterDefaults(strAddonName, tDefaults)
       end
+
+      if not VikingSettings.db.char[strAddonName] then
+        VikingSettings.db.char[strAddonName] = {}
+      end
     else
       glog:warn("Tried to register addon '" ..strAddonName.. "' but it was already registered.")
     end
@@ -141,6 +145,10 @@ function VikingSettings:RegisterDefaults(strAddonName, tDefaults)
 end
 
 function VikingSettings:ResetAddon(strAddonName)
+  if not VikingSettings.db.char[strAddonName] then 
+    return 
+  end
+
   for k in pairs (VikingSettings.db.char[strAddonName]) do
     VikingSettings.db.char[strAddonName][k] = nil
   end
