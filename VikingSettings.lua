@@ -78,13 +78,9 @@ function VikingSettings:OnDocLoaded()
   if self.xmlDoc ~= nil and self.xmlDoc:IsLoaded() then
     Apollo.RegisterSlashCommand("vui", "OnVikingUISlashCommand", self)
 
-    -- tAddonData contains:
-    -- tAddon
-    -- strAddonName
-    -- wndContainer
-    -- wndButton
-
     self.tAddons = {}
+    self.wndContainers = {}
+    self.wndButtons = {}
 
     VikingSettings.RegisterSettings(self, "VikingSettings")
   end
@@ -100,14 +96,8 @@ end
 
 function VikingSettings.RegisterSettings(tAddon, strAddonName, tDefaults)
   if tAddon and strAddonName then
-    local tAddonData = 
-    {
-      tAddon = tAddon,
-      strAddonName = strAddonName
-    }
-
-    if not VikingSettings:IsAddonRegistered(strAddonName) then
-      table.insert(VikingSettings.tAddons, tAddonData)
+    if not VikingSettings.tAddons[strAddonName] then
+      VikingSettings.tAddons[strAddonName] = tAddon
 
       if tDefaults then
         VikingSettings:RegisterDefaults(strAddonName, tDefaults)
@@ -120,16 +110,6 @@ function VikingSettings.RegisterSettings(tAddon, strAddonName, tDefaults)
       glog:warn("Tried to register addon '" ..strAddonName.. "' but it was already registered.")
     end
   end
-end
-
-function VikingSettings:IsAddonRegistered(strAddonName)
-  for id, tAddonData in pairs(self.tAddons) do
-    if tAddonData.strAddonName == strAddonName then
-      return true
-    end
-  end
-
-  return false
 end
 
 function VikingSettings:RegisterDefaults(strAddonName, tDefaults)
@@ -159,8 +139,7 @@ function VikingSettings:ResetAddon(strAddonName)
     VikingSettings:RegisterDefaults(strAddonName, tDefaults)
   end
 
-  local tAddonData = VikingSettings:GetAddonDataByName(strAddonName)
-  VikingSettings:UpdateForm(tAddonData)
+  VikingSettings:UpdateForm(strAddonName)
 end
 
 function VikingSettings:ShowSettings(bShow)
@@ -175,52 +154,54 @@ function VikingSettings:ShowSettings(bShow)
   self.wndSettings:Show(bShow, false)
 end
 
-function VikingSettings:UpdateForm(tAddonData)
-  if tAddonData.wndContainer and tAddonData.tAddon.UpdateSettingsForm then
-    tAddonData.tAddon:UpdateSettingsForm(tAddonData.wndContainer)
+function VikingSettings:UpdateForm(strAddonName)
+  local tAddon = VikingSettings.tAddons[strAddonName]
+  local wndContainer = VikingSettings.wndContainers[strAddonName]
+
+  if wndContainer and tAddon and tAddon.UpdateSettingsForm then
+    tAddon:UpdateSettingsForm(wndContainer)
   end
 end
 
 function VikingSettings:UpdateAllForms()
-  for id, tAddonData in pairs(self.tAddons) do
-    VikingSettings:UpdateForm(tAddonData)
-  end
-end
-
-function VikingSettings:GetAddonDataByName(strAddonName)
-  for id, tAddonData in pairs(self.tAddons) do
-    if tAddonData.strAddonName == strAddonName then
-      return tAddonData
-    end
+  for strAddonName, tAddon in pairs(self.tAddons) do
+    VikingSettings:UpdateForm(strAddonName)
   end
 end
 
 function VikingSettings:BuildSettingsWindow()
   self.wndSettings = Apollo.LoadForm(self.xmlDoc, "VikingSettingsForm", nil, self)
 
-  for id, tAddonData in ipairs(self.tAddons) do
-    self.CreateAddonForm(tAddonData)
-    tAddonData.wndButton:SetAnchorOffsets(0, (id - 1) * 40, 0, id * 40)
+  local cnt = 0
+  for strAddonName, tAddon in pairs(self.tAddons) do
+    self.CreateAddonForm(strAddonName)
+    self.wndButtons[strAddonName]:SetAnchorOffsets(0, cnt * 40, 0, (cnt + 1) * 40)
+
+    if cnt == 0 then 
+      self.wndButtons[strAddonName]:SetCheck(true) 
+    end
+
+    cnt = cnt + 1
   end
 
-  self.tAddons[1].wndButton:SetCheck(true)
   self:OnSettingsMenuButtonCheck()
 end
 
-function VikingSettings.CreateAddonForm(tAddonData)
-  local wndAddonContainer = Apollo.LoadForm(tAddonData.tAddon.xmlDoc, "VikingSettings", VikingSettings.wndSettings:FindChild("Content"), tAddonData.tAddon)
+function VikingSettings.CreateAddonForm(strAddonName)
+  local tAddon = VikingSettings.tAddons[strAddonName]
+  local wndAddonContainer = Apollo.LoadForm(tAddon.xmlDoc, "VikingSettings", VikingSettings.wndSettings:FindChild("Content"), tAddon)
   local wndAddonButton    = Apollo.LoadForm(VikingSettings.xmlDoc, "AddonButton", VikingSettings.wndSettings:FindChild("Menu"), VikingSettings)
   
   -- attaching makes it show/hide the container according to the check state
   wndAddonButton:AttachWindow(wndAddonContainer)
-  wndAddonButton:SetText(tAddonData.strAddonName)
+  wndAddonButton:SetText(strAddonName)
   wndAddonButton:Show(true)
   wndAddonButton:SetCheck(false)
 
   wndAddonContainer:Show(false)
 
-  tAddonData.wndContainer = wndAddonContainer
-  tAddonData.wndButton = wndAddonButton
+  VikingSettings.wndContainers[strAddonName] = wndAddonContainer
+  VikingSettings.wndButtons[strAddonName] = wndAddonButton
 end
 
 -- merges t2 into t1 without overwriting values
@@ -282,8 +263,8 @@ function VikingSettings:OnSettingsMenuButtonCheck( wndHandler, wndControl, eMous
 end
 
 function VikingSettings:OnResetEverythingButton( wndHandler, wndControl, eMouseButton )
-  for idx, tAddonData in pairs(self.tAddons) do
-    self:ResetAddon(tAddonData.strAddonName)
+  for strAddonName, tAddon in pairs(self.tAddons) do
+    self:ResetAddon(strAddonName)
   end
 end
 
