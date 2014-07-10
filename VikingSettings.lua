@@ -46,7 +46,8 @@ local defaults = {
 -----------------------------------------------------------------------------------------------
 -- Upvalues
 -----------------------------------------------------------------------------------------------
-local MergeTables, RegisterDefaults, UpdateForm, UpdateAllForms, CreateAddonForm, BuildSettingsWindow
+local MergeTables, RegisterDefaults, UpdateForm, UpdateAllForms, CreateAddonForm
+local BuildSettingsWindow, SortByKey
 
 -----------------------------------------------------------------------------------------------
 -- Initialization
@@ -180,19 +181,22 @@ end
 function BuildSettingsWindow()
   wndSettings = Apollo.LoadForm(VikingSettings.xmlDoc, "VikingSettingsForm", nil, VikingSettings)
 
-  local cnt = 0
-  for strAddonName, tAddon in pairs(tAddons) do
+  local tSorted = SortByKey(tAddons)
+
+  for i, strAddonName in ipairs(tSorted) do
     CreateAddonForm(strAddonName)
-    wndButtons[strAddonName]:SetAnchorOffsets(0, cnt * 40, 0, (cnt + 1) * 40)
-
-    if cnt == 0 then 
-      wndButtons[strAddonName]:SetCheck(true) 
-    end
-
-    cnt = cnt + 1
+    wndButtons[strAddonName]:SetAnchorOffsets(0, (i - 1) * 40, 0, i * 40)
   end
 
+  wndButtons[tSorted[1]]:SetCheck(true) 
   VikingSettings:OnSettingsMenuButtonCheck()
+end
+
+function SortByKey (t)
+  local a = {}
+  for n in pairs(t) do table.insert(a, n) end
+  table.sort(a)
+  return a
 end
 
 function CreateAddonForm(strAddonName)
