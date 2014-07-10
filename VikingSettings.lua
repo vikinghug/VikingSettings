@@ -44,6 +44,11 @@ local defaults = {
 }
 
 -----------------------------------------------------------------------------------------------
+-- Upvalues
+-----------------------------------------------------------------------------------------------
+local MergeTables, RegisterDefaults, UpdateForm, UpdateAllForms, CreateAddonForm, BuildSettingsWindow
+
+-----------------------------------------------------------------------------------------------
 -- Initialization
 -----------------------------------------------------------------------------------------------
 local VikingSettings = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon(
@@ -55,20 +60,27 @@ local VikingSettings = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon(
                                     "Gemini:DB-1.0"
                                   })
 
+local tAddons = {}
+local wndContainers = {}
+local wndButtons = {}
+
+local wndSettings
+
+local GeminiLogging = Apollo.GetPackage("Gemini:Logging-1.2").tPackage
+local glog
+
+local GColor = Apollo.GetPackage("GeminiColor").tPackage
+
+local db = Apollo.GetPackage("Gemini:DB-1.0").tPackage:New(VikingSettings, defaults)
+
 function VikingSettings:OnInitialize()
-  local GeminiLogging = Apollo.GetPackage("Gemini:Logging-1.2").tPackage
   glog = GeminiLogging:GetLogger({
-    level = GeminiLogging.INFO,
-    pattern = "%d [%c:%n] %l - %m",
-    appender = "GeminiConsole"
-  })
-  self.log = glog
+              level = GeminiLogging.INFO,
+              pattern = "%d [%c:%n] %l - %m",
+              appender = "GeminiConsole"
+             })
+
   glog:info(string.format("Loaded "..NAME.." - "..VERSION))
-
-  local GeminiColor= Apollo.GetPackage("GeminiColor").tPackage
-  self.gcolor = GeminiColor
-
-  self.db = Apollo.GetPackage("Gemini:DB-1.0").tPackage:New(self, defaults)
 
   self.xmlDoc = XmlDoc.CreateFromFile("VikingSettings.xml")
   self.xmlDoc:RegisterCallback("OnDocLoaded", self)
@@ -78,33 +90,29 @@ function VikingSettings:OnDocLoaded()
   if self.xmlDoc ~= nil and self.xmlDoc:IsLoaded() then
     Apollo.RegisterSlashCommand("vui", "OnVikingUISlashCommand", self)
 
-    self.tAddons = {}
-    self.wndContainers = {}
-    self.wndButtons = {}
-
     VikingSettings.RegisterSettings(self, "VikingSettings")
   end
 end
 
 function VikingSettings.GetDatabase(strAddonName)
-  local db = VikingSettings.db.char[strAddonName]
-  if db then
-    db.General = VikingSettings.db.char.General
+  local tDb = db.char[strAddonName]
+  if tDb then
+    tDb.General = db.char.General
   end
-  return db
+  return tDb
 end
 
 function VikingSettings.RegisterSettings(tAddon, strAddonName, tDefaults)
   if tAddon and strAddonName then
-    if not VikingSettings.tAddons[strAddonName] then
-      VikingSettings.tAddons[strAddonName] = tAddon
+    if not tAddons[strAddonName] then
+      tAddons[strAddonName] = tAddon
 
       if tDefaults then
-        VikingSettings:RegisterDefaults(strAddonName, tDefaults)
+        RegisterDefaults(strAddonName, tDefaults)
       end
 
-      if not VikingSettings.db.char[strAddonName] then
-        VikingSettings.db.char[strAddonName] = {}
+      if not db.char[strAddonName] then
+        db.char[strAddonName] = {}
       end
     else
       glog:warn("Tried to register addon '" ..strAddonName.. "' but it was already registered.")
@@ -112,85 +120,85 @@ function VikingSettings.RegisterSettings(tAddon, strAddonName, tDefaults)
   end
 end
 
-function VikingSettings:RegisterDefaults(strAddonName, tDefaults)
-  if not VikingSettings.db.char[strAddonName] then
-    VikingSettings.db.char[strAddonName] = {}
+function RegisterDefaults(strAddonName, tDefaults)
+  if not db.char[strAddonName] then
+    db.char[strAddonName] = {}
   end
 
-  if not VikingSettings.db.defaults.char[strAddonName] then
-    VikingSettings.db.defaults.char[strAddonName] = tDefaults
+  if not db.defaults.char[strAddonName] then
+    db.defaults.char[strAddonName] = tDefaults
   end
 
-  VikingSettings:MergeTables(VikingSettings.db.char[strAddonName], tDefaults)
+  MergeTables(db.char[strAddonName], tDefaults)
 end
 
 function VikingSettings:ResetAddon(strAddonName)
-  if not VikingSettings.db.char[strAddonName] then 
+  if not db.char[strAddonName] then 
     return 
   end
 
-  for k in pairs (VikingSettings.db.char[strAddonName]) do
-    VikingSettings.db.char[strAddonName][k] = nil
+  for k in pairs (db.char[strAddonName]) do
+    db.char[strAddonName][k] = nil
   end
 
-  local tDefaults = VikingSettings.db.defaults.char[strAddonName]
+  local tDefaults = db.defaults.char[strAddonName]
 
   if tDefaults then
-    VikingSettings:RegisterDefaults(strAddonName, tDefaults)
+    RegisterDefaults(strAddonName, tDefaults)
   end
 
-  VikingSettings:UpdateForm(strAddonName)
+  UpdateForm(strAddonName)
 end
 
 function VikingSettings:ShowSettings(bShow)
   if bShow then
-    if not self.wndSettings then
-      self:BuildSettingsWindow()
+    if not wndSettings then
+      BuildSettingsWindow()
     end
 
-    self:UpdateAllForms()
+    UpdateAllForms()
   end
 
-  self.wndSettings:Show(bShow, false)
+  wndSettings:Show(bShow, false)
 end
 
-function VikingSettings:UpdateForm(strAddonName)
-  local tAddon = VikingSettings.tAddons[strAddonName]
-  local wndContainer = VikingSettings.wndContainers[strAddonName]
+function UpdateForm(strAddonName)
+  local tAddon = tAddons[strAddonName]
+  local wndContainer = wndContainers[strAddonName]
 
   if wndContainer and tAddon and tAddon.UpdateSettingsForm then
     tAddon:UpdateSettingsForm(wndContainer)
   end
 end
 
-function VikingSettings:UpdateAllForms()
-  for strAddonName, tAddon in pairs(self.tAddons) do
-    VikingSettings:UpdateForm(strAddonName)
+function UpdateAllForms()
+  for strAddonName, tAddon in pairs(tAddons) do
+    UpdateForm(strAddonName)
   end
 end
 
-function VikingSettings:BuildSettingsWindow()
-  self.wndSettings = Apollo.LoadForm(self.xmlDoc, "VikingSettingsForm", nil, self)
+function BuildSettingsWindow()
+  wndSettings = Apollo.LoadForm(VikingSettings.xmlDoc, "VikingSettingsForm", nil, VikingSettings)
 
   local cnt = 0
-  for strAddonName, tAddon in pairs(self.tAddons) do
-    self.CreateAddonForm(strAddonName)
-    self.wndButtons[strAddonName]:SetAnchorOffsets(0, cnt * 40, 0, (cnt + 1) * 40)
+  for strAddonName, tAddon in pairs(tAddons) do
+    CreateAddonForm(strAddonName)
+    wndButtons[strAddonName]:SetAnchorOffsets(0, cnt * 40, 0, (cnt + 1) * 40)
 
     if cnt == 0 then 
-      self.wndButtons[strAddonName]:SetCheck(true) 
+      wndButtons[strAddonName]:SetCheck(true) 
     end
 
     cnt = cnt + 1
   end
 
-  self:OnSettingsMenuButtonCheck()
+  VikingSettings:OnSettingsMenuButtonCheck()
 end
 
-function VikingSettings.CreateAddonForm(strAddonName)
-  local tAddon = VikingSettings.tAddons[strAddonName]
-  local wndAddonContainer = Apollo.LoadForm(tAddon.xmlDoc, "VikingSettings", VikingSettings.wndSettings:FindChild("Content"), tAddon)
-  local wndAddonButton    = Apollo.LoadForm(VikingSettings.xmlDoc, "AddonButton", VikingSettings.wndSettings:FindChild("Menu"), VikingSettings)
+function CreateAddonForm(strAddonName)
+  local tAddon = tAddons[strAddonName]
+  local wndAddonContainer = Apollo.LoadForm(tAddon.xmlDoc, "VikingSettings", wndSettings:FindChild("Content"), tAddon)
+  local wndAddonButton    = Apollo.LoadForm(VikingSettings.xmlDoc, "AddonButton", wndSettings:FindChild("Menu"), VikingSettings)
   
   -- attaching makes it show/hide the container according to the check state
   wndAddonButton:AttachWindow(wndAddonContainer)
@@ -200,19 +208,19 @@ function VikingSettings.CreateAddonForm(strAddonName)
 
   wndAddonContainer:Show(false)
 
-  VikingSettings.wndContainers[strAddonName] = wndAddonContainer
-  VikingSettings.wndButtons[strAddonName] = wndAddonButton
+  wndContainers[strAddonName] = wndAddonContainer
+  wndButtons[strAddonName] = wndAddonButton
 end
 
 -- merges t2 into t1 without overwriting values
-function VikingSettings:MergeTables(t1, t2)
+function MergeTables(t1, t2)
   for k, v in pairs(t2) do
       if type(v) == "table" then
           if not t1[k] or type(t1[k]) ~= "table" then
             t1[k] = {}
           end
 
-          VikingSettings:MergeTables(t1[k], t2[k])
+          MergeTables(t1[k], t2[k])
       elseif not t1[k] then
           t1[k] = v
       end
@@ -239,7 +247,7 @@ end
 function VikingSettings.ShowColorPickerForSetting(tSection, strKeyName, callback, wndControl)
   local strInitialColor = tSection[strKeyName]
 
-  VikingSettings.gcolor:ShowColorPicker(VikingSettings, "OnColorPicker", true, strInitialColor, tSection, strKeyName, callback, wndControl)
+  GColor:ShowColorPicker(VikingSettings, "OnColorPicker", true, strInitialColor, tSection, strKeyName, callback, wndControl)
 end
 
 function VikingSettings:OnColorPicker(strColor, tSection, strKeyName, callback, wndControl)
@@ -258,12 +266,12 @@ end
 -- VikingSettings Form Functions
 -----------------------------------------------------------------------------------------------
 function VikingSettings:OnSettingsMenuButtonCheck( wndHandler, wndControl, eMouseButton )
-  self.wndSettings:FindChild("Content"):SetVScrollPos(0)
-  self.wndSettings:FindChild("Content"):RecalculateContentExtents()
+  wndSettings:FindChild("Content"):SetVScrollPos(0)
+  wndSettings:FindChild("Content"):RecalculateContentExtents()
 end
 
 function VikingSettings:OnResetEverythingButton( wndHandler, wndControl, eMouseButton )
-  for strAddonName, tAddon in pairs(self.tAddons) do
+  for strAddonName, tAddon in pairs(tAddons) do
     self:ResetAddon(strAddonName)
   end
 end
