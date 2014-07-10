@@ -149,6 +149,10 @@ function VikingSettings:ResetAddon(strAddonName)
   end
 
   UpdateForm(strAddonName)
+
+  if tAddons[strAddonName].OnSettingsChanged then
+    tAddons[strAddonName]:OnSettingsChanged()
+  end
 end
 
 function VikingSettings:ShowSettings(bShow)
