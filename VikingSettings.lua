@@ -96,11 +96,7 @@ function VikingSettings:OnDocLoaded()
 end
 
 function VikingSettings.GetDatabase(strAddonName)
-  local tDb = db.char[strAddonName]
-  if tDb then
-    tDb.General = db.char.General
-  end
-  return tDb
+  return db.char[strAddonName]
 end
 
 function VikingSettings.RegisterSettings(tAddon, strAddonName, tDefaults)
