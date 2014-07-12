@@ -47,7 +47,7 @@ local defaults = {
 -- Upvalues
 -----------------------------------------------------------------------------------------------
 local MergeTables, RegisterDefaults, UpdateForm, UpdateAllForms, CreateAddonForm
-local BuildSettingsWindow, SortByKey
+local BuildSettingsWindow, SortByKey, DisplayNameCompare
 
 -----------------------------------------------------------------------------------------------
 -- Initialization
@@ -61,6 +61,7 @@ local VikingSettings = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon(
                                     "Gemini:DB-1.0"
                                   })
 
+local tDisplayNames = {}
 local tAddons = {}
 local wndContainers = {}
 local wndButtons = {}
@@ -91,7 +92,7 @@ function VikingSettings:OnDocLoaded()
   if self.xmlDoc ~= nil and self.xmlDoc:IsLoaded() then
     Apollo.RegisterSlashCommand("vui", "OnVikingUISlashCommand", self)
 
-    VikingSettings.RegisterSettings(self, "VikingSettings")
+    VikingSettings.RegisterSettings(self, "VikingSettings", "Settings")
   end
 end
 
@@ -99,10 +100,12 @@ function VikingSettings.GetDatabase(strAddonName)
   return db.char[strAddonName]
 end
 
-function VikingSettings.RegisterSettings(tAddon, strAddonName, tDefaults)
+function VikingSettings.RegisterSettings(tAddon, strAddonName, strDisplayName, tDefaults)
   if tAddon and strAddonName then
     if not tAddons[strAddonName] then
       tAddons[strAddonName] = tAddon
+
+      tDisplayNames[strAddonName] = strDisplayName or strAddonName
 
       if tDefaults then
         RegisterDefaults(strAddonName, tDefaults)
@@ -181,7 +184,7 @@ end
 function BuildSettingsWindow()
   wndSettings = Apollo.LoadForm(VikingSettings.xmlDoc, "VikingSettingsForm", nil, VikingSettings)
 
-  local tSorted = SortByKey(tAddons)
+  local tSorted = SortByKey(tAddons, DisplayNameCompare)
 
   for i, strAddonName in ipairs(tSorted) do
     CreateAddonForm(strAddonName)
@@ -192,11 +195,15 @@ function BuildSettingsWindow()
   VikingSettings:OnSettingsMenuButtonCheck()
 end
 
-function SortByKey (t)
+function SortByKey (t, compare)
   local a = {}
   for n in pairs(t) do table.insert(a, n) end
-  table.sort(a)
+  table.sort(a, compare)
   return a
+end
+
+function DisplayNameCompare(a,b)
+  return tDisplayNames[a] < tDisplayNames[b]
 end
 
 function CreateAddonForm(strAddonName)
@@ -206,7 +213,7 @@ function CreateAddonForm(strAddonName)
   
   -- attaching makes it show/hide the container according to the check state
   wndAddonButton:AttachWindow(wndAddonContainer)
-  wndAddonButton:SetText(strAddonName)
+  wndAddonButton:SetText(tDisplayNames[strAddonName])
   wndAddonButton:Show(true)
   wndAddonButton:SetCheck(false)
 
