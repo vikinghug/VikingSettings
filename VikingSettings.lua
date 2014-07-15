@@ -133,6 +133,7 @@ function RegisterDefaults(strAddonName, tDefaults)
 end
 
 function VikingSettings:ResetAddon(strAddonName)
+
   if not db.char[strAddonName] then
     return
   end
