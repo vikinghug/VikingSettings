@@ -193,10 +193,10 @@ function BuildSettingsWindow()
   end
 
   wndButtons[tSorted[1]]:SetCheck(true)
-  VikingSettings:OnSettingsMenuButtonCheck()
+  VikingSettings:OnSettingsMenuButtonCheck( wndButtons[tSorted[1]] )
 end
 
-function SortByKey (t, compare)
+function SortByKey(t, compare)
   local a = {}
   for n in pairs(t) do table.insert(a, n) end
   table.sort(a, compare)
@@ -211,10 +211,11 @@ function CreateAddonForm(strAddonName)
   local tAddon = tAddons[strAddonName]
   local wndAddonContainer = Apollo.LoadForm(tAddon.xmlDoc, "VikingSettings", wndSettings:FindChild("Content"), tAddon)
   local wndAddonButton    = Apollo.LoadForm(VikingSettings.xmlDoc, "AddonButton", wndSettings:FindChild("Menu"), VikingSettings)
+  local ButtonText        = wndAddonButton:FindChild("Text")
 
   -- attaching makes it show/hide the container according to the check state
   wndAddonButton:AttachWindow(wndAddonContainer)
-  wndAddonButton:SetText(tDisplayNames[strAddonName])
+  ButtonText:SetText(tDisplayNames[strAddonName])
   wndAddonButton:Show(true)
   wndAddonButton:SetCheck(false)
 
@@ -274,12 +275,25 @@ function VikingSettings:OnColorPicker(strColor, tSection, strKeyName, callback, 
   end
 end
 
+local function ButtonColors( wnd, fg, bg )
+  if wnd then
+    wnd:SetBGColor(ApolloColor.new(bg))
+    wnd:FindChild("Text"):SetTextColor(ApolloColor.new(fg))
+    wnd:FindChild("Arrow"):SetBGColor(ApolloColor.new(fg))
+  end
+end
+
 -----------------------------------------------------------------------------------------------
 -- VikingSettings Form Functions
 -----------------------------------------------------------------------------------------------
 function VikingSettings:OnSettingsMenuButtonCheck( wndHandler, wndControl, eMouseButton )
+  ButtonColors(wndHandler, "ff"..tColors.purple, "ff"..tColors.yellow)
   wndSettings:FindChild("Content"):SetVScrollPos(0)
   wndSettings:FindChild("Content"):RecalculateContentExtents()
+end
+
+function VikingSettings:OnSettingMenuButtonUncheck( wndHandler, wndControl, eMouseButton )
+  ButtonColors(wndHandler, "ff"..tColors.lightGrey, "00"..tColors.purple)
 end
 
 function VikingSettings:OnResetEverythingButton( wndHandler, wndControl, eMouseButton )
@@ -305,3 +319,6 @@ end
 function VikingSettings:OnCloseButton()
   self:ShowSettings(false)
 end
+
+
+
