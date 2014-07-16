@@ -6,7 +6,7 @@
     <Script Name="GeminiColor/GeminiColor.lua"/>
     <Form Name="GeminiColor/GeminiColor.xml"/>
     <Script Name="GeminiDB/GeminiDB-1.0.lua"/>
-    <!-- Addon Innit -->
+    <!-- Addon Init -->
     <Script Name="VikingSettings.lua"/>
     <!-- Additional Modules/XML -->
     <Form Name="VikingSettings.xml"/>
