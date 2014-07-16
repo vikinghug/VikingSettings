@@ -7,16 +7,12 @@ require "Window"
 require "Apollo"
 
 -----------------------------------------------------------------------------------------------
--- VikingSettings Module Definition
------------------------------------------------------------------------------------------------
-
------------------------------------------------------------------------------------------------
 -- Constants
 -----------------------------------------------------------------------------------------------
 local NAME = "VikingSettings"
 local VERSION = "0.0.1"
 
-local tColors = {
+tColors = {
   black       = "141122",
   white       = "ffffff",
   lightGrey   = "bcb7da",
@@ -32,7 +28,6 @@ local tColors = {
 local defaults = {
   char = {
     ['*']                 = false,
-    testbool              = true,
 
     General = {
       colors = {
@@ -44,65 +39,15 @@ local defaults = {
         [Unit.CodeEnumDisposition.Hostile]  = "ff" .. tColors.red,
         [Unit.CodeEnumDisposition.Friendly] = "ff" .. tColors.green,
       }
-    },
-
-    VikingUnitFrames = {
-      style               = 0,
-      position = {
-        playerFrame = {
-          fPoints  = {0.5, 1, 0.5, 1},
-          nOffsets = {-350, -200, -100, -120}
-        },
-        targetFrame = {
-          fPoints  = {0.5, 1, 0.5, 1},
-          nOffsets = {100, -200, 350, -120}
-        },
-        focusFrame = {
-          fPoints  = {0, 1, 0, 1},
-          nOffsets = {40, -500, 250, -440}
-        }
-      },
-      text = {
-        percent = true,
-        value   = false,
-        none    = false
-      },
-      colors = {
-        Health = { high = "ff" .. tColors.green,  average = "ff" .. tColors.yellow, low = "ff" .. tColors.red },
-        Shield = { high = "ff" .. tColors.blue,   average = "ff" .. tColors.blue, low = "ff" ..   tColors.blue },
-        Absorb = { high = "ff" .. tColors.yellow, average = "ff" .. tColors.yellow, low = "ff" .. tColors.yellow },
-      },
-    },
-
-    VikingClassResources = {
-      Warrior = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-      },
-      Spellslinger = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-      },
-      Esper = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-        EnableGlow        = true,
-      },
-      Engineer = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-      },
-      Stalker = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-      },
-      Medic = {
-        style             = 0,
-        ResourceColor     = "ffffffff",
-      },
     }
   }
 }
+
+-----------------------------------------------------------------------------------------------
+-- Upvalues
+-----------------------------------------------------------------------------------------------
+local MergeTables, RegisterDefaults, UpdateForm, UpdateAllForms, CreateAddonForm
+local BuildSettingsWindow, SortByKey, DisplayNameCompare
 
 -----------------------------------------------------------------------------------------------
 -- Initialization
@@ -116,20 +61,28 @@ local VikingSettings = Apollo.GetPackage("Gemini:Addon-1.1").tPackage:NewAddon(
                                     "Gemini:DB-1.0"
                                   })
 
+local tDisplayNames = {}
+local tAddons = {}
+local wndContainers = {}
+local wndButtons = {}
+
+local wndSettings
+
+local GeminiLogging = Apollo.GetPackage("Gemini:Logging-1.2").tPackage
+local glog
+
+local GColor = Apollo.GetPackage("GeminiColor").tPackage
+
+local db = Apollo.GetPackage("Gemini:DB-1.0").tPackage:New(VikingSettings, defaults)
+
 function VikingSettings:OnInitialize()
-  local GeminiLogging = Apollo.GetPackage("Gemini:Logging-1.2").tPackage
   glog = GeminiLogging:GetLogger({
-    level = GeminiLogging.INFO,
-    pattern = "%d [%c:%n] %l - %m",
-    appender = "GeminiConsole"
-  })
-  self.log = glog
+              level = GeminiLogging.INFO,
+              pattern = "%d [%c:%n] %l - %m",
+              appender = "GeminiConsole"
+             })
+
   glog:info(string.format("Loaded "..NAME.." - "..VERSION))
-
-  local GeminiColor= Apollo.GetPackage("GeminiColor").tPackage
-  self.gcolor = GeminiColor
-
-  self.db = Apollo.GetPackage("Gemini:DB-1.0").tPackage:New(self, defaults)
 
   self.xmlDoc = XmlDoc.CreateFromFile("VikingSettings.xml")
   self.xmlDoc:RegisterCallback("OnDocLoaded", self)
@@ -139,88 +92,214 @@ function VikingSettings:OnDocLoaded()
   if self.xmlDoc ~= nil and self.xmlDoc:IsLoaded() then
     Apollo.RegisterSlashCommand("vui", "OnVikingUISlashCommand", self)
 
-    self.tAddons = {}
-
-    VikingSettings.RegisterSettings(self, "VikingSettings")
+    VikingSettings.RegisterSettings(self, "VikingSettings", "Settings")
   end
 end
 
-function VikingSettings.RegisterSettings(tAddon, strAddonName)
-  if tAddon then
-    local tAddonData = 
-    {
-      tAddon = tAddon,
-      strAddonName = strAddonName
-    }
+function VikingSettings.GetDatabase(strAddonName)
+  return db.char[strAddonName]
+end
 
-    if not VikingSettings:IsAddonRegistered(strAddonName) then
-      table.insert(VikingSettings.tAddons, tAddonData)
+function VikingSettings.RegisterSettings(tAddon, strAddonName, strDisplayName, tDefaults)
+  if tAddon and strAddonName then
+    if not tAddons[strAddonName] then
+      tAddons[strAddonName] = tAddon
+
+      tDisplayNames[strAddonName] = strDisplayName or strAddonName
+
+      if tDefaults then
+        RegisterDefaults(strAddonName, tDefaults)
+      end
+
+      if not db.char[strAddonName] then
+        db.char[strAddonName] = {}
+      end
     else
       glog:warn("Tried to register addon '" ..strAddonName.. "' but it was already registered.")
     end
   end
 end
 
-function VikingSettings:IsAddonRegistered(strAddonName)
-  for id, tAddonData in pairs(self.tAddons) do
-    if tAddonData.strAddonName == strAddonName then
-      return true
-    end
+function RegisterDefaults(strAddonName, tDefaults)
+  if not db.char[strAddonName] then
+    db.char[strAddonName] = {}
   end
 
-  return false
+  if not db.defaults.char[strAddonName] then
+    db.defaults.char[strAddonName] = tDefaults
+  end
+
+  MergeTables(db.char[strAddonName], tDefaults)
+end
+
+function VikingSettings:ResetAddon(strAddonName)
+
+  if not db.char[strAddonName] then
+    return
+  end
+
+  for k in pairs (db.char[strAddonName]) do
+    db.char[strAddonName][k] = nil
+  end
+
+  local tDefaults = db.defaults.char[strAddonName]
+
+  if tDefaults then
+    RegisterDefaults(strAddonName, tDefaults)
+  end
+
+  UpdateForm(strAddonName)
+
+  if tAddons[strAddonName].OnSettingsChanged then
+    tAddons[strAddonName]:OnSettingsChanged()
+  end
 end
 
 function VikingSettings:ShowSettings(bShow)
-  if not self.wndSettings then
-    self:BuildSettingsWindow()
+  if bShow then
+    if not wndSettings then
+      BuildSettingsWindow()
+    end
+
+    UpdateAllForms()
   end
 
-  self.wndSettings:Show(bShow, false)
+  wndSettings:Show(bShow, false)
 end
 
-function VikingSettings:BuildSettingsWindow()
-  self.wndSettings = Apollo.LoadForm(self.xmlDoc, "VikingSettingsForm", nil, self)
+function UpdateForm(strAddonName)
+  local tAddon = tAddons[strAddonName]
+  local wndContainer = wndContainers[strAddonName]
 
-  for id, tAddonData in ipairs(self.tAddons) do
-    self.CreateAddonForm(tAddonData)
-    tAddonData.tButton:SetAnchorOffsets(0, (id - 1) * 40, 0, id * 40)
+  if wndContainer and tAddon and tAddon.UpdateSettingsForm then
+    tAddon:UpdateSettingsForm(wndContainer)
+  end
+end
+
+function UpdateAllForms()
+  for strAddonName, tAddon in pairs(tAddons) do
+    UpdateForm(strAddonName)
+  end
+end
+
+function BuildSettingsWindow()
+  wndSettings = Apollo.LoadForm(VikingSettings.xmlDoc, "VikingSettingsForm", nil, VikingSettings)
+
+  local tSorted = SortByKey(tAddons, DisplayNameCompare)
+
+  for i, strAddonName in ipairs(tSorted) do
+    CreateAddonForm(strAddonName)
+    wndButtons[strAddonName]:SetAnchorOffsets(0, (i - 1) * 40, 0, i * 40)
   end
 
-  self.tAddons[1].tButton:SetCheck(true)
-  self:OnSettingsMenuButtonCheck()
+  wndButtons[tSorted[1]]:SetCheck(true)
+  VikingSettings:OnSettingsMenuButtonCheck( wndButtons[tSorted[1]] )
 end
 
-function VikingSettings.CreateAddonForm(tAddonData)
-  local wndAddonContainer = Apollo.LoadForm(tAddonData.tAddon.xmlDoc, "VikingSettings", VikingSettings.wndSettings:FindChild("Content"), tAddonData.tAddon)
-  local wndAddonButton    = Apollo.LoadForm(VikingSettings.xmlDoc, "AddonButton", VikingSettings.wndSettings:FindChild("Menu"), VikingSettings)
-  
+function SortByKey(t, compare)
+  local a = {}
+  for n in pairs(t) do table.insert(a, n) end
+  table.sort(a, compare)
+  return a
+end
+
+function DisplayNameCompare(a,b)
+  return tDisplayNames[a] < tDisplayNames[b]
+end
+
+function CreateAddonForm(strAddonName)
+  local tAddon = tAddons[strAddonName]
+  local wndAddonContainer = Apollo.LoadForm(tAddon.xmlDoc, "VikingSettings", wndSettings:FindChild("Content"), tAddon)
+  local wndAddonButton    = Apollo.LoadForm(VikingSettings.xmlDoc, "AddonButton", wndSettings:FindChild("Menu"), VikingSettings)
+  local ButtonText        = wndAddonButton:FindChild("Text")
+
   -- attaching makes it show/hide the container according to the check state
   wndAddonButton:AttachWindow(wndAddonContainer)
-  wndAddonButton:SetText(tAddonData.strAddonName)
+  ButtonText:SetText(tDisplayNames[strAddonName])
   wndAddonButton:Show(true)
   wndAddonButton:SetCheck(false)
 
   wndAddonContainer:Show(false)
 
-  tAddonData.tContainer = wndAddonContainer
-  tAddonData.tButton = wndAddonButton
+  wndContainers[strAddonName] = wndAddonContainer
+  wndButtons[strAddonName] = wndAddonButton
+end
+
+-- merges t2 into t1 without overwriting values
+function MergeTables(t1, t2)
+  for k, v in pairs(t2) do
+      if type(v) == "table" then
+          if not t1[k] or type(t1[k]) ~= "table" then
+            t1[k] = {}
+          end
+
+          MergeTables(t1[k], t2[k])
+      elseif not t1[k] then
+          t1[k] = v
+      end
+  end
+  return t1
 end
 
 -----------------------------------------------------------------------------------------------
 -- Color Functions
 -----------------------------------------------------------------------------------------------
-function VikingSettings:UpdateTextColor(strColor, wndHandler, addon, subSection, varName)
-  self.db.char[addon][subSection][varName] = strColor
-  wndHandler:SetTextColor(strColor)
+
+--
+-- ShowColorPickerForSetting(tSection, strKeyName[, callback][, wndControl])
+--
+--   Shows a color picker for a specific color setting in the database
+--
+-- tSection is a reference to the table containing the color
+-- strKeyName is the key name for the color in that section
+-- callback is a function reference that's called when the color changes
+-- wndControl is a window which bagground will show the color
+--
+-- callback(tSection, strKeyName, strColor, wndControl)
+--
+function VikingSettings.ShowColorPickerForSetting(tSection, strKeyName, callback, wndControl)
+  local strInitialColor = tSection[strKeyName]
+
+  GColor:ShowColorPicker(VikingSettings, "OnColorPicker", true, strInitialColor, tSection, strKeyName, callback, wndControl)
+end
+
+function VikingSettings:OnColorPicker(strColor, tSection, strKeyName, callback, wndControl)
+  tSection[strKeyName] = strColor
+
+  if wndControl then
+    wndControl:SetBGColor(strColor)
+  end
+
+  if callback then
+    callback(tSection, strKeyName, strColor, wndControl)
+  end
+end
+
+local function ButtonColors( wnd, fg, bg )
+  if wnd then
+    wnd:SetBGColor(ApolloColor.new(bg))
+    wnd:FindChild("Text"):SetTextColor(ApolloColor.new(fg))
+    wnd:FindChild("Arrow"):SetBGColor(ApolloColor.new(fg))
+  end
 end
 
 -----------------------------------------------------------------------------------------------
 -- VikingSettings Form Functions
 -----------------------------------------------------------------------------------------------
 function VikingSettings:OnSettingsMenuButtonCheck( wndHandler, wndControl, eMouseButton )
-  self.wndSettings:FindChild("Content"):SetVScrollPos(0)
-  self.wndSettings:FindChild("Content"):RecalculateContentExtents()
+  ButtonColors(wndHandler, "ff"..tColors.purple, "ff"..tColors.yellow)
+  wndSettings:FindChild("Content"):SetVScrollPos(0)
+  wndSettings:FindChild("Content"):RecalculateContentExtents()
+end
+
+function VikingSettings:OnSettingMenuButtonUncheck( wndHandler, wndControl, eMouseButton )
+  ButtonColors(wndHandler, "ff"..tColors.lightGrey, "00"..tColors.purple)
+end
+
+function VikingSettings:OnResetEverythingButton( wndHandler, wndControl, eMouseButton )
+  for strAddonName, tAddon in pairs(tAddons) do
+    self:ResetAddon(strAddonName)
+  end
 end
 
 -----------------------------------------------------------------------------------------------
@@ -240,3 +319,6 @@ end
 function VikingSettings:OnCloseButton()
   self:ShowSettings(false)
 end
+
+
+
