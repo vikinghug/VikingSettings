@@ -27,18 +27,14 @@ tColors = {
 
 local defaults = {
   char = {
-    ['*']                 = false,
-
-    General = {
-      colors = {
-        background = "992b273d",
-        gradient   = "ff141122"
-      },
-      dispositionColors = {
-        [Unit.CodeEnumDisposition.Neutral]  = "ff" .. tColors.yellow,
-        [Unit.CodeEnumDisposition.Hostile]  = "ff" .. tColors.red,
-        [Unit.CodeEnumDisposition.Friendly] = "ff" .. tColors.green,
-      }
+    colors = {
+      background = "992b273d",
+      gradient   = "ff141122"
+    },
+    dispositionColors = {
+      [Unit.CodeEnumDisposition.Neutral]  = "ff" .. tColors.yellow,
+      [Unit.CodeEnumDisposition.Hostile]  = "ff" .. tColors.red,
+      [Unit.CodeEnumDisposition.Friendly] = "ff" .. tColors.green,
     }
   }
 }
@@ -92,67 +88,31 @@ function VikingSettings:OnDocLoaded()
   if self.xmlDoc ~= nil and self.xmlDoc:IsLoaded() then
     Apollo.RegisterSlashCommand("vui", "OnVikingUISlashCommand", self)
 
-    VikingSettings.RegisterSettings(self, "VikingSettings", "Settings")
+    VikingSettings.RegisterSettings(self, "VikingSettings", nil, "Settings")
   end
 end
 
-function VikingSettings.GetDatabase(strAddonName)
-  return db.char[strAddonName]
-end
-
-function VikingSettings.RegisterSettings(tAddon, strAddonName, strDisplayName, tDefaults)
-  if tAddon and strAddonName then
-    if not tAddons[strAddonName] then
-      tAddons[strAddonName] = tAddon
-
-      tDisplayNames[strAddonName] = strDisplayName or strAddonName
-
-      if tDefaults then
-        RegisterDefaults(strAddonName, tDefaults)
-      end
-
-      if not db.char[strAddonName] then
-        db.char[strAddonName] = {}
-      end
-    else
-      glog:warn("Tried to register addon '" ..strAddonName.. "' but it was already registered.")
-    end
-  end
-end
-
-function RegisterDefaults(strAddonName, tDefaults)
-  if not db.char[strAddonName] then
-    db.char[strAddonName] = {}
-  end
-
-  if not db.defaults.char[strAddonName] then
-    db.defaults.char[strAddonName] = tDefaults
-  end
-
-  MergeTables(db.char[strAddonName], tDefaults)
-end
-
-function VikingSettings:ResetAddon(strAddonName)
-
-  if not db.char[strAddonName] then
+function VikingSettings.RegisterSettings(tAddon, strAddonName, tDefaults, strDisplayName)
+  if db:GetNamespace(strAddonName, true) then
     return
   end
 
-  for k in pairs (db.char[strAddonName]) do
-    db.char[strAddonName][k] = nil
+  tAddons[strAddonName] = tAddon
+  tDisplayNames[strAddonName] = strDisplayName or strAddonName
+
+  return db:RegisterNamespace(strAddonName, tDefaults)
+end
+
+function VikingSettings:ResetAddon(strAddonName)
+  local tAddonDb = db:GetNamespace(strAddonName, true)
+
+  if not tAddonDb then
+    return
   end
 
-  local tDefaults = db.defaults.char[strAddonName]
-
-  if tDefaults then
-    RegisterDefaults(strAddonName, tDefaults)
-  end
+  tAddonDb:ResetProfile()
 
   UpdateForm(strAddonName)
-
-  if tAddons[strAddonName].OnSettingsChanged then
-    tAddons[strAddonName]:OnSettingsChanged()
-  end
 end
 
 function VikingSettings:ShowSettings(bShow)
@@ -223,22 +183,6 @@ function CreateAddonForm(strAddonName)
 
   wndContainers[strAddonName] = wndAddonContainer
   wndButtons[strAddonName] = wndAddonButton
-end
-
--- merges t2 into t1 without overwriting values
-function MergeTables(t1, t2)
-  for k, v in pairs(t2) do
-      if type(v) == "table" then
-          if not t1[k] or type(t1[k]) ~= "table" then
-            t1[k] = {}
-          end
-
-          MergeTables(t1[k], t2[k])
-      elseif not t1[k] then
-          t1[k] = v
-      end
-  end
-  return t1
 end
 
 -----------------------------------------------------------------------------------------------
