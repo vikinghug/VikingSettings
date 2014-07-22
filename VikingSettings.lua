@@ -12,7 +12,7 @@ require "Apollo"
 local NAME = "VikingSettings"
 local VERSION = "0.0.1"
 
-tColors = {
+local tColors = {
   black       = "141122",
   white       = "ffffff",
   lightGrey   = "bcb7da",
@@ -194,6 +194,10 @@ end
 -----------------------------------------------------------------------------------------------
 -- Color Functions
 -----------------------------------------------------------------------------------------------
+
+function VikingSettings.GetColors()
+  return tColors
+end
 
 --
 -- ShowColorPickerForSetting(tSection, strKeyName[, callback][, wndControl])
