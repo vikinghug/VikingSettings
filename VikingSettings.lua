@@ -110,7 +110,13 @@ function VikingSettings:ResetAddon(strAddonName)
     return
   end
 
-  tAddonDb:ResetProfile()
+  local tSections = rawget(tAddonDb, "keys")
+
+  for section in pairs(tSections) do
+    if tostring(section) ~= "profiles" then
+      tAddonDb:ResetSection(tostring(section))
+    end
+  end
 
   UpdateForm(strAddonName)
 end
