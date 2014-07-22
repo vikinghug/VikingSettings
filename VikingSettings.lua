@@ -43,7 +43,7 @@ local defaults = {
 -- Upvalues
 -----------------------------------------------------------------------------------------------
 local MergeTables, RegisterDefaults, UpdateForm, UpdateAllForms, CreateAddonForm
-local BuildSettingsWindow, SortByKey, DisplayNameCompare
+local BuildSettingsWindow, SortByKey, DisplayNameCompare, ResetNamespace
 
 -----------------------------------------------------------------------------------------------
 -- Initialization
@@ -106,19 +106,29 @@ end
 function VikingSettings:ResetAddon(strAddonName)
   local tAddonDb = db:GetNamespace(strAddonName, true)
 
-  if not tAddonDb then
+  if tAddonDb then
+    ResetNamespace(tAddonDb)
+    UpdateForm(strAddonName)
+  end
+end
+
+function VikingSettings:ResetAllAddons()
+  ResetNamespace(db)
+  UpdateAllForms()
+end
+
+function ResetNamespace(tNamespace)
+  if not tNamespace then
     return
   end
 
-  local tSections = rawget(tAddonDb, "keys")
+  local tSections = rawget(tNamespace, "keys")
 
   for section in pairs(tSections) do
     if tostring(section) ~= "profiles" then
-      tAddonDb:ResetSection(tostring(section))
+      tNamespace:ResetSection(tostring(section))
     end
   end
-
-  UpdateForm(strAddonName)
 end
 
 function VikingSettings:ShowSettings(bShow)
@@ -251,9 +261,7 @@ function VikingSettings:OnSettingMenuButtonUncheck( wndHandler, wndControl, eMou
 end
 
 function VikingSettings:OnResetEverythingButton( wndHandler, wndControl, eMouseButton )
-  for strAddonName, tAddon in pairs(tAddons) do
-    self:ResetAddon(strAddonName)
-  end
+  VikingSettings:ResetAllAddons()
 end
 
 -----------------------------------------------------------------------------------------------
