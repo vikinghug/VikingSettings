@@ -12,11 +12,12 @@ require "Apollo"
 local NAME = "VikingSettings"
 local VERSION = "0.0.1"
 
-local tColors = {
+tColors = {
   black       = "141122",
   white       = "ffffff",
   lightGrey   = "bcb7da",
   green       = "1fd865",
+  aqua        = "2fd5ac",
   yellow      = "ffd161",
   orange      = "e08457",
   lightPurple = "645f7e",
