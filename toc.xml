@@ -5,6 +5,7 @@
     <Script Name="GeminiLogging/GeminiLogging.lua"/>
     <Script Name="GeminiColor/GeminiColor.lua"/>
     <Form Name="GeminiColor/GeminiColor.xml"/>
+    <Script Name="CallbackHandler/CallbackHandler-1.0.lua"/>
     <Script Name="GeminiDB/GeminiDB-1.0.lua"/>
     <!-- Addon Init -->
     <Script Name="VikingSettings.lua"/>
