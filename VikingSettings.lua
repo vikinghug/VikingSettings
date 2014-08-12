@@ -86,11 +86,10 @@ function VikingSettings:OnInitialize()
 end
 
 function VikingSettings:OnDocLoaded()
-  if self.xmlDoc ~= nil and self.xmlDoc:IsLoaded() then
-    Apollo.RegisterSlashCommand("vui", "OnVikingUISlashCommand", self)
+  if self.xmlDoc == nil then return end
+  Apollo.RegisterSlashCommand("vui", "OnVikingUISlashCommand", self)
 
-    VikingSettings.RegisterSettings(self, "VikingSettings", nil, "Settings")
-  end
+  VikingSettings.RegisterSettings(self, "VikingSettings", nil, "Settings")
 end
 
 function VikingSettings.RegisterSettings(tAddon, strAddonName, tDefaults, strDisplayName)
@@ -161,6 +160,7 @@ end
 
 function BuildSettingsWindow()
   wndSettings = Apollo.LoadForm(VikingSettings.xmlDoc, "VikingSettingsForm", nil, VikingSettings)
+  Event_FireGenericEvent("WindowManagementAdd", { wnd = wndSettings, strName = "Viking Settings" })
 
   local tSorted = SortByKey(tAddons, DisplayNameCompare)
 
@@ -190,6 +190,8 @@ function CreateAddonForm(strAddonName)
   local wndAddonButton    = Apollo.LoadForm(VikingSettings.xmlDoc, "AddonButton", wndSettings:FindChild("Menu"), VikingSettings)
   local ButtonText        = wndAddonButton:FindChild("Text")
 
+  if tAddon.InitSettings ~= nil then tAddon:InitSettings(wndAddonContainer) end
+
   -- attaching makes it show/hide the container according to the check state
   wndAddonButton:AttachWindow(wndAddonContainer)
   ButtonText:SetText(tDisplayNames[strAddonName])
@@ -200,7 +202,10 @@ function CreateAddonForm(strAddonName)
 
   wndContainers[strAddonName] = wndAddonContainer
   wndButtons[strAddonName] = wndAddonButton
+
+  -- SendVarToRover("tAddons", tAddons)
 end
+
 
 -----------------------------------------------------------------------------------------------
 -- Color Functions
